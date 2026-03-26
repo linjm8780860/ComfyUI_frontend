@@ -1,0 +1,83 @@
+name: PR Comment Trigger for Image Build
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-and-trigger:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    if: |
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '打包镜像')
+    steps:
+      - name: Extract comment info
+        id: extract-comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. 提取标签
+          COMMENT="${{ github.event.comment.body }}"
+          if [[ "$COMMENT" =~ ^打包镜像[[:space:]]+(.+)$ ]]; then
+            LABEL="${BASH_REMATCH[1]}"
+            echo "Using custom label: $LABEL"
+          else
+            LABEL="default"
+            echo "Using default label"
+          fi
+
+          # 2. 通过 REST API 获取 PR 详情
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          BRANCH=$(gh api "$PR_URL" --jq '.head.ref')
+
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "null" ]; then
+            echo "::error::Failed to get branch name from PR"
+            exit 1
+          fi
+
+          echo "label=${LABEL}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "Extracted branch: ${BRANCH}"
+
+      - name: Debug outputs
+        run: |
+          echo "Branch: ${{ steps.extract-comment.outputs.branch }}"
+          echo "Label: ${{ steps.extract-comment.outputs.label }}"
+
+      - name: Trigger build workflow
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.COMMENT_BUILD_TOKEN }}
+          script: |
+            try {
+              const branch = '${{ steps.extract-comment.outputs.branch }}';
+              if (!branch || branch === 'null') {
+                throw new Error('Invalid branch name: ' + branch);
+              }
+
+              console.log(`Triggering workflow for branch: ${branch}`);
+
+              const response = await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'build_gpu_image.yml',
+                ref: branch,
+                inputs: {
+                  ref: branch,
+                  label: '${{ steps.extract-comment.outputs.label }}',
+                  image_name: 'hub.6scloud.com/d1s6t1r3jrms73f3ltpg/bizyair-draft',
+                  push_image: true,
+                  pytorch_image: 'pytorch/pytorch:2.5.0-cuda12.4-cudnn9-runtime',
+                  cuda_runtime_image: 'nvidia/cuda:12.4.0-runtime-ubuntu22.04'
+                }
+              });
+
+              console.log('Workflow triggered successfully');
+            } catch (error) {
+              console.error('Error triggering workflow:');
+              console.error(error);
+              core.setFailed(`Failed to trigger workflow: ${error.message}`);
+            }

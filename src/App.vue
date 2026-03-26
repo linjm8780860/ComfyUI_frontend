@@ -14,6 +14,7 @@ import config from '@/config'
 import { isDesktop } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { app } from '@/scripts/app'
+import { recoverManagedAssetLoad } from '@/services/pwa/serviceWorkerManager'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { electronAPI } from '@/utils/envUtil'
 import { parsePreloadError } from '@/utils/preloadErrorUtil'
@@ -49,6 +50,7 @@ const showContextMenu = (event: MouseEvent) => {
 
 function handleResourceError(url: string, tagName: string) {
   console.error('[resource:loadError]', { url, tagName })
+  recoverManagedAssetLoad(url)
 
   if (__DISTRIBUTION__ === 'cloud') {
     captureException(new Error(`Resource load failed: ${url}`), {
@@ -94,6 +96,7 @@ onMounted(() => {
         }
       })
     }
+    recoverManagedAssetLoad(info.url)
     // Disabled: Third-party custom node extensions frequently trigger this toast
     // (e.g., bare "vue" imports, wrong relative paths to scripts/app.js, missing
     // core dependencies). These are plugin bugs, not ComfyUI core failures, but

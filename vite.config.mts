@@ -15,6 +15,7 @@ import typegpuPlugin from 'unplugin-typegpu/vite'
 import { defineConfig } from 'vitest/config'
 import type { ProxyOptions } from 'vite'
 import { createHtmlPlugin } from 'vite-plugin-html'
+import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 import { comfyAPIPlugin } from './build/plugins'
@@ -258,6 +259,26 @@ export default defineConfig({
     tailwindcss(),
     typegpuPlugin({}),
     comfyAPIPlugin(IS_DEV),
+    ...(DISTRIBUTION !== 'desktop'
+      ? [
+          VitePWA({
+            injectRegister: false,
+            manifest: false,
+            includeAssets: [
+              'assets/favicon.ico',
+              'fonts/*.woff2',
+              'materialdesignicons.min.css'
+            ],
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'service-worker.js',
+            injectManifest: {
+              globPatterns: ['**/*.{ico,png,svg,txt,woff2}'],
+              rollupFormat: 'iife'
+            }
+          })
+        ]
+      : []),
     // Exclude proprietary ABCROM fonts from non-cloud builds
     {
       name: 'exclude-proprietary-fonts',

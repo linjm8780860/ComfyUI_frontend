@@ -33,7 +33,7 @@
     @contextmenu="handleContextMenu"
     @dragover.prevent="handleDragOver"
     @dragleave="handleDragLeave"
-    @drop.prevent="handleDrop"
+    @drop.stop.prevent="handleDrop"
   >
     <!-- Selection/Execution Outline Overlay -->
     <AppOutput
@@ -827,13 +827,15 @@ function handleDragLeave() {
   isDraggingOver.value = false
 }
 
-function handleDrop(event: DragEvent) {
+async function handleDrop(event: DragEvent) {
   isDraggingOver.value = false
 
   const node = lgraphNode.value
-  if (!node?.onDragDrop) return
+  if (!node || !node.onDragDrop) {
+    return
+  }
 
-  const handled = node.onDragDrop(event)
-  if (handled === true) event.stopPropagation()
+  // Forward the drop event to the litegraph node's onDragDrop callback
+  await node.onDragDrop(event)
 }
 </script>

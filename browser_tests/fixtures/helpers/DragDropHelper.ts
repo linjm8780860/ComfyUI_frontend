@@ -25,15 +25,13 @@ export class DragDropHelper {
       url?: string
       dropPosition?: Position
       waitForUpload?: boolean
-      preserveNativePropagation?: boolean
     } = {}
   ): Promise<void> {
     const {
       dropPosition = { x: 100, y: 100 },
       fileName,
       url,
-      waitForUpload = false,
-      preserveNativePropagation = false
+      waitForUpload = false
     } = options
 
     if (!fileName && !url)
@@ -45,8 +43,7 @@ export class DragDropHelper {
       fileType?: string
       buffer?: Uint8Array | number[]
       url?: string
-      preserveNativePropagation: boolean
-    } = { dropPosition, preserveNativePropagation }
+    } = { dropPosition }
 
     if (fileName) {
       const filePath = this.assetPath(fileName)
@@ -118,17 +115,15 @@ export class DragDropHelper {
         )
       }
 
-      if (!params.preserveNativePropagation) {
-        Object.defineProperty(dropEvent, 'preventDefault', {
-          value: () => {},
-          writable: false
-        })
+      Object.defineProperty(dropEvent, 'preventDefault', {
+        value: () => {},
+        writable: false
+      })
 
-        Object.defineProperty(dropEvent, 'stopPropagation', {
-          value: () => {},
-          writable: false
-        })
-      }
+      Object.defineProperty(dropEvent, 'stopPropagation', {
+        value: () => {},
+        writable: false
+      })
 
       targetElement.dispatchEvent(dragOverEvent)
       targetElement.dispatchEvent(dropEvent)
@@ -159,10 +154,7 @@ export class DragDropHelper {
 
   async dragAndDropURL(
     url: string,
-    options: {
-      dropPosition?: Position
-      preserveNativePropagation?: boolean
-    } = {}
+    options: { dropPosition?: Position } = {}
   ): Promise<void> {
     return this.dragAndDropExternalResource({ url, ...options })
   }

@@ -13,20 +13,8 @@ import { useCanvasStore } from '@/renderer/core/canvas/canvasStore'
 import { setActivePinia } from 'pinia'
 
 const mockData = vi.hoisted(() => ({
-  mockExecuting: false,
-  mockLgraphNode: null as Record<string, unknown> | null
+  mockExecuting: false
 }))
-
-vi.mock('@/utils/graphTraversalUtil', async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>
-  return {
-    ...actual,
-    getLocatorIdFromNodeData: vi.fn(() => 'test-node-123'),
-    getNodeByLocatorId: vi.fn(
-      () => mockData.mockLgraphNode ?? { isSubgraphNode: () => false }
-    )
-  }
-})
 
 vi.mock('@/renderer/core/layout/transform/useTransformState', () => {
   return {
@@ -60,6 +48,16 @@ vi.mock('@/scripts/app', () => ({
     canvas: { setDirty: vi.fn() }
   }
 }))
+
+vi.mock('@/utils/graphTraversalUtil', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    getNodeByLocatorId: vi.fn(() => ({
+      isSubgraphNode: () => false
+    }))
+  }
+})
 
 vi.mock('@/composables/useErrorHandling', () => ({
   useErrorHandling: () => ({
@@ -293,54 +291,6 @@ describe('LGraphNode', () => {
     it('should render resize handle for regular nodes', () => {
       const wrapper = mountLGraphNode({ nodeData: mockNodeData })
       expect(wrapper.find('[role="button"][aria-label]').exists()).toBe(true)
-    })
-  })
-
-  describe('handleDrop', () => {
-    it('should stop propagation when onDragDrop returns true', async () => {
-      const onDragDrop = vi.fn().mockReturnValue(true)
-      mockData.mockLgraphNode = {
-        onDragDrop,
-        onDragOver: vi.fn(),
-        isSubgraphNode: () => false
-      }
-
-      const wrapper = mountLGraphNode({ nodeData: mockNodeData })
-
-      const parentListener = vi.fn()
-      const parent = wrapper.element.parentElement
-      expect(parent).not.toBeNull()
-      parent!.addEventListener('drop', parentListener)
-
-      wrapper.element.dispatchEvent(
-        new Event('drop', { bubbles: true, cancelable: true })
-      )
-
-      expect(onDragDrop).toHaveBeenCalled()
-      expect(parentListener).not.toHaveBeenCalled()
-    })
-
-    it('should not stop propagation when onDragDrop returns false', async () => {
-      const onDragDrop = vi.fn().mockReturnValue(false)
-      mockData.mockLgraphNode = {
-        onDragDrop,
-        onDragOver: vi.fn(),
-        isSubgraphNode: () => false
-      }
-
-      const wrapper = mountLGraphNode({ nodeData: mockNodeData })
-
-      const parentListener = vi.fn()
-      const parent = wrapper.element.parentElement
-      expect(parent).not.toBeNull()
-      parent!.addEventListener('drop', parentListener)
-
-      wrapper.element.dispatchEvent(
-        new Event('drop', { bubbles: true, cancelable: true })
-      )
-
-      expect(onDragDrop).toHaveBeenCalled()
-      expect(parentListener).toHaveBeenCalled()
     })
   })
 })

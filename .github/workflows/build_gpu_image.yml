@@ -1,0 +1,139 @@
+name: Build GPU Image by Self-Hosted Runner
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: '要构建的分支（输入分支名称）'
+        required: true
+        type: string
+        default: 'master'
+      label:
+        description: '镜像标签'
+        required: false
+        type: string
+        default: 'default'
+      image_name:
+        description: '镜像名称'
+        required: false
+        default: 'hub.6scloud.com/d1s6t1r3jrms73f3ltpg/bizyair-draft'
+      push_image:
+        description: '是否推送镜像'
+        required: false
+        type: boolean
+        default: true
+      registry_username:
+        description: '仓库用户名 (可选)'
+        required: false
+      registry_password:
+        description: '仓库密码 (可选)'
+        required: false
+        type: password
+      pytorch_image:
+        description: 'PyTorch基础镜像'
+        required: false
+        default: 'pytorch/pytorch:2.5.0-cuda12.4-cudnn9-runtime'
+      cuda_runtime_image:
+        description: 'CUDA运行时镜像'
+        required: false
+        default: 'nvidia/cuda:12.4.0-runtime-ubuntu22.04'
+
+jobs:
+  GPU-Image-Build:
+    runs-on: [self-hosted, buildimage]
+    steps:
+      - name: Determine input values
+        id: determine-inputs
+        run: |
+          echo "ref=${{ github.event.inputs.ref }}" >> $GITHUB_OUTPUT
+          echo "label=${{ github.event.inputs.label }}" >> $GITHUB_OUTPUT
+          echo "image_name=${{ github.event.inputs.image_name }}" >> $GITHUB_OUTPUT
+          echo "registry_username=${{ github.event.inputs.registry_username }}" >> $GITHUB_OUTPUT
+          echo "registry_password=${{ github.event.inputs.registry_password }}" >> $GITHUB_OUTPUT
+          echo "push_image=${{ github.event.inputs.push_image }}" >> $GITHUB_OUTPUT
+          echo "pytorch_image=${{ github.event.inputs.pytorch_image }}" >> $GITHUB_OUTPUT
+          echo "cuda_runtime_image=${{ github.event.inputs.cuda_runtime_image }}" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.determine-inputs.outputs.ref }}
+
+      - name: Validate image name
+        run: |
+          if ! [[ "${{ steps.determine-inputs.outputs.image_name }}" =~ ^[a-zA-Z0-9.-]+(/[a-zA-Z0-9._-]+)+(:[a-zA-Z0-9._-]+)?$ ]]; then
+            echo "错误: 镜像名称格式不正确" >&2
+            exit 1
+          fi
+
+      - name: Cache Python virtualenv
+        id: cache-venv
+        uses: actions/cache@v3
+        with:
+          path: buildimage
+          key: ${{ runner.os }}-pyenv-${{ hashFiles('requirements.txt') }}
+
+      - name: Generate version tag
+        id: version
+        run: |
+          BRANCH_SIMPLE=$(echo '${{ github.event.inputs.ref }}' | sed -e 's/[^a-zA-Z0-9_-]/-/g' -e 's/-\+/-/g')
+          LABEL=$(echo '${{ github.event.inputs.label }}' | sed -e 's/[^a-zA-Z0-9_-]/-/g' -e 's/-\+/-/g')
+          DATE=$(date +'%Y%m%d%H%M')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION=v${DATE}-${BRANCH_SIMPLE}-${LABEL}-${SHORT_SHA}
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
+
+      - name: Build image
+        id: build-image
+        env:
+          IMAGE_NAME: ${{ github.event.inputs.image_name }}:${{ steps.version.outputs.VERSION }}
+          USE_PIP_CACHE: true
+          PIP_CACHE_DIR: ${{ vars.PIP_CACHE_DIR }}
+          PYTORCH_IMAGE: ${{ steps.determine-inputs.outputs.pytorch_image }}
+          CUDA_RUNTIME_IMAGE: ${{ steps.determine-inputs.outputs.cuda_runtime_image }}
+          VENDOR_CACHE_DIR: ${{ vars.VENDOR_CACHE_PATH }}
+          FONTS_COLLECTIONS_FILE_PATH: ${{ vars.FONTS_COLLECTIONS_FILE_PATH }}
+        run: |
+          python3 -m venv buildimage
+          source buildimage/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+
+          echo "Use pip cache: $USE_PIP_CACHE, $PIP_CACHE_DIR"
+          echo "PyTorch base image: $PYTORCH_IMAGE"
+          echo "CUDA runtime image: $CUDA_RUNTIME_IMAGE"
+          echo "Building Docker image: $IMAGE_NAME"
+          echo "Vendor Cache path: $VENDOR_CACHE_DIR"
+          bash cgr_docker/gpu_comfyany/build.sh "$IMAGE_NAME"
+          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Set login credentials
+        id: set-creds
+        run: |
+          USERNAME="${{ github.event.inputs.registry_username || secrets.SIXSCLOUD_USERNAME }}"
+          PASSWORD="${{ github.event.inputs.registry_password || secrets.SIXSCLOUD_PASSWORD }}"
+          echo "username=${USERNAME}" >> $GITHUB_OUTPUT
+          echo "password=${PASSWORD}" >> $GITHUB_OUTPUT
+
+      - name: Extract registry from image reference
+        id: extract-registry
+        run: |
+          REGISTRY=$(echo "${{ steps.build-image.outputs.image_name }}" | awk -F/ '{print $1}')
+          echo "Extracted registry: $REGISTRY"
+          echo "registry=${REGISTRY}" >> $GITHUB_OUTPUT
+
+      - name: Log in to registry
+        if: steps.set-creds.outputs.username != '' && steps.determine-inputs.outputs.push_image == 'true'
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ steps.extract-registry.outputs.registry }}
+          username: ${{ steps.set-creds.outputs.username }}
+          password: ${{ steps.set-creds.outputs.password }}
+
+      - name: Push image
+        if: steps.determine-inputs.outputs.push_image == 'true'
+        run: |
+          IMAGE_NAME="${{ steps.build-image.outputs.image_name }}"
+          echo "Pushing image: $IMAGE_NAME"
+          docker push "$IMAGE_NAME"
+          echo "Image pushed successfully: $IMAGE_NAME"

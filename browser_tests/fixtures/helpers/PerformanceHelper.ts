@@ -23,7 +23,6 @@ export interface PerfMeasurement {
   layoutDurationMs: number
   taskDurationMs: number
   heapDeltaBytes: number
-  heapUsedBytes: number
   domNodes: number
   jsHeapTotalBytes: number
   scriptDurationMs: number
@@ -191,7 +190,6 @@ export class PerformanceHelper {
       layoutDurationMs: delta('LayoutDuration') * 1000,
       taskDurationMs: delta('TaskDuration') * 1000,
       heapDeltaBytes: delta('JSHeapUsedSize'),
-      heapUsedBytes: after.JSHeapUsedSize,
       domNodes: delta('Nodes'),
       jsHeapTotalBytes: delta('JSHeapTotalSize'),
       scriptDurationMs: delta('ScriptDuration') * 1000,

@@ -2,10 +2,10 @@
   "name": "ComfyUI",
   "short_name": "ComfyUI",
   "description": "ComfyUI: AI image generation platform",
-  "start_url": "/",
+  "start_url": "./",
   "icons": [
     {
-      "src": "/assets/images/comfy-logo-single.svg",
+      "src": "assets/images/comfy-logo-single.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }

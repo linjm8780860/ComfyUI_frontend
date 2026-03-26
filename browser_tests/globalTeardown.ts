@@ -1,11 +1,12 @@
-import { config as dotenvConfig } from 'dotenv'
+import type { FullConfig } from '@playwright/test'
+import dotenv from 'dotenv'
 
 import { writePerfReport } from './helpers/perfReporter'
 import { restorePath } from './utils/backupUtils'
 
-dotenvConfig()
+dotenv.config()
 
-export default function globalTeardown() {
+export default function globalTeardown(_config: FullConfig) {
   writePerfReport()
 
   if (!process.env.CI && process.env.TEST_COMFYUI_DIR) {

@@ -1,0 +1,149 @@
+name: Update Specific Requirements
+
+on:
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  Try-to-Update-Requirements:
+    if: startsWith(github.event.comment.body, '更新依赖')
+    runs-on: [self-hosted, buildimage]
+    steps:
+      - name: Parse parameters from comment
+        id: parse_params
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_PATH: ${{ github.event.comment.path }}
+        run: |
+          # 去掉前缀
+          ARGS=(${COMMENT_BODY#更新依赖})
+
+          # 被评论的文件
+          CURRENT_FILE="$COMMENT_PATH"
+
+          # 根据参数个数决定 CONFIG_PATH / OUTPUT_PATH
+          case ${#ARGS[@]} in
+            0)
+              # 无参数：当前文件必须是 json，输出为同目录 requirements_full.txt
+              if [[ "$CURRENT_FILE" != *.json ]]; then
+                echo "::error::当前被评论文件不是 JSON：$CURRENT_FILE"
+                exit 1
+              fi
+              CONFIG_PATH="$CURRENT_FILE"
+              OUTPUT_PATH="$(dirname "$CURRENT_FILE")/requirements_full.txt"
+              ;;
+            1)
+              # 1 个参数：当前文件作为 config，参数作为 output
+              if [[ "$CURRENT_FILE" != *.json ]]; then
+                echo "::error::被评论的配置文件必须是 JSON：$CURRENT_FILE"
+                exit 1
+              fi
+              CONFIG_PATH="$CURRENT_FILE"
+              OUTPUT_PATH="${ARGS[0]}"
+              if [[ "$OUTPUT_PATH" != *.txt ]]; then
+                echo "::error::输出文件必须是 txt 文件：$OUTPUT_PATH"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::参数最多 1 个"
+              exit 1
+              ;;
+          esac
+
+          # 安全校验
+          if [[ "$CONFIG_PATH" == *".."* ]] || [[ "$OUTPUT_PATH" == *".."* ]]; then
+            echo "::error::路径中不允许使用父目录引用(..)"
+            exit 1
+          fi
+          if [[ "$CONFIG_PATH" == /* ]]; then
+            echo "::error::配置文件不允许使用绝对路径"
+            exit 1
+          fi
+          if [[ "$OUTPUT_PATH" == /* ]]; then
+            echo "::error::输出路径不允许使用绝对路径"
+            exit 1
+          fi
+
+          echo "config_path=$CONFIG_PATH" >> $GITHUB_OUTPUT
+          echo "output_path=$OUTPUT_PATH" >> $GITHUB_OUTPUT
+          echo "解析结果: 配置=$CONFIG_PATH, 输出=$OUTPUT_PATH"
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+
+      - name: Cache Python virtualenv
+        id: cache-venv
+        uses: actions/cache@v3
+        with:
+          path: buildimage
+          key: ${{ runner.os }}-pyenv-${{ hashFiles('requirements.txt') }}
+
+      - name: Setup python and generate merged requirements file
+        run: |
+          python3 -m venv buildimage
+          source buildimage/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          python3 tools/setupVendor.py \
+            --config "${{ steps.parse_params.outputs.config_path }}" \
+            --cache ${{ vars.VENDOR_CACHE_PATH }} \
+            -o ./vendor
+
+          python3 tools/gen_full_reqs.py \
+            --config "${{ steps.parse_params.outputs.config_path }}" \
+            -d ./vendor \
+            -o temp_requirements_full.txt
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ ! -f "${{ steps.parse_params.outputs.output_path }}" ] || \
+             ! cmp -s temp_requirements_full.txt "${{ steps.parse_params.outputs.output_path }}"; then
+            mv temp_requirements_full.txt "${{ steps.parse_params.outputs.output_path }}"
+            git add "${{ steps.parse_params.outputs.output_path }}"
+            git commit -m "chore: auto-update ${{ steps.parse_params.outputs.output_path }}"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push changes
+        if: steps.commit.outputs.changed == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.MY_GITHUB_TOKEN }}
+          branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: YES CHANGE Comment on PR
+        if: steps.commit.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+          script: |
+            const body = '🤖 ${{ steps.parse_params.outputs.output_path }} 已自动更新并推送。请**人工审核确认**。';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: NO CHANGE Comment on PR
+        if: steps.commit.outputs.changed == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+          script: |
+            const body = '🤖 ${{ steps.parse_params.outputs.output_path }} 无变化。';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

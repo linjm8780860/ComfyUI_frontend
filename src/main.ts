@@ -19,6 +19,7 @@ import {
 import '@/lib/litegraph/public/css/litegraph.css'
 import router from '@/router'
 import { useBootstrapStore } from '@/stores/bootstrapStore'
+import { initializeServiceWorkerManager } from '@/services/pwa/serviceWorkerManager'
 
 import App from './App.vue'
 // Intentionally relative import to ensure the CSS is loaded in the right order (after litegraph.css)
@@ -105,3 +106,5 @@ const bootstrapStore = useBootstrapStore(pinia)
 void bootstrapStore.startStoreBootstrap()
 
 app.mount('#vue-app')
+
+void initializeServiceWorkerManager(pinia)
