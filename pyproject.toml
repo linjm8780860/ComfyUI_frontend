@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "comfyui-frontend-package"
+name = "comfyui-frontend-package-ljm"
 dynamic = ["version"]
 description = "Official front-end implementation of ComfyUI"
 readme = "README.md"
