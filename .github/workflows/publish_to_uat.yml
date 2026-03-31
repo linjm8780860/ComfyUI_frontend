@@ -23,6 +23,17 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || 'dev' }}
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -49,12 +60,14 @@ jobs:
 
       - name: Build Python package
         run: |
-          rm -rf dist
-          python -m build --wheel
+          rm -rf comfyui_frontend_package/dist
+          COMFYUI_FRONTEND_PACKAGE_NAME="comfyui-frontend-package-ljm" \
+          COMFYUI_FRONTEND_VERSION="$UAT_VERSION" \
+          bash scripts/build_pypi_package.sh
 
       - name: Verify package version
         run: |
-          PACKAGE_NAME=$(ls dist/*.whl | head -n1)
+          PACKAGE_NAME=$(ls comfyui_frontend_package/dist/*.whl | head -n1)
           echo "Built package: $PACKAGE_NAME"
 
           if [[ $PACKAGE_NAME != *"$UAT_VERSION"* ]]; then
@@ -64,11 +77,38 @@ jobs:
             exit 1
           fi
 
+      - name: Verify wheel contains frontend static assets
+        run: |
+          python - <<'PY'
+          import glob
+          import sys
+          import zipfile
+
+          wheel = glob.glob("comfyui_frontend_package/dist/*.whl")
+          if not wheel:
+              print("No wheel found in comfyui_frontend_package/dist", file=sys.stderr)
+              sys.exit(1)
+
+          wheel_path = wheel[0]
+          with zipfile.ZipFile(wheel_path) as zf:
+              static_files = [
+                  name for name in zf.namelist()
+                  if name.startswith("comfyui_frontend_package/static/")
+              ]
+
+          print(f"wheel: {wheel_path}")
+          print(f"static file count: {len(static_files)}")
+
+          if not static_files:
+              print("Wheel does not contain comfyui_frontend_package/static assets", file=sys.stderr)
+              sys.exit(1)
+          PY
+
       - name: Upload artifact (for debugging)
         uses: actions/upload-artifact@v4
         with:
           name: python-wheel-uat-dev
-          path: dist/*.whl
+          path: comfyui_frontend_package/dist/*.whl
           retention-days: 3
 
       - name: Publish UAT package to PyPI
@@ -76,4 +116,4 @@ jobs:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.PYPI_KEY }}
         run: |
-          python -m twine upload dist/*.whl
+          python -m twine upload comfyui_frontend_package/dist/*.whl
