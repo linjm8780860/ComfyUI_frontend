@@ -264,11 +264,11 @@ export default defineConfig({
           VitePWA({
             injectRegister: false,
             manifest: false,
-            includeAssets: [
-              'assets/favicon.ico',
-              'fonts/*.woff2',
-              'materialdesignicons.min.css'
-            ],
+            // Keep this list minimal. Files already matched by globPatterns must
+            // not also be listed here, or Workbox will see conflicting precache
+            // entries for the same URL and the service worker will fail during
+            // evaluation.
+            includeAssets: ['materialdesignicons.min.css'],
             strategies: 'injectManifest',
             srcDir: 'src',
             filename: 'service-worker.js',
