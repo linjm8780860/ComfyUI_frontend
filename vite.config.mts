@@ -72,6 +72,12 @@ if (!GIT_COMMIT) {
   }
 }
 
+const SERVICE_WORKER_CACHE_VERSION =
+  process.env.FRONTEND_CACHE_VERSION ||
+  (GIT_COMMIT !== 'unknown'
+    ? GIT_COMMIT
+    : process.env.npm_package_version || 'unknown')
+
 // Disable Vue DevTools for production cloud distribution
 const DISABLE_VUE_PLUGINS =
   process.env.DISABLE_VUE_PLUGINS === 'true' ||
@@ -637,6 +643,7 @@ export default defineConfig({
       process.env.npm_package_version
     ),
     __COMFYUI_FRONTEND_COMMIT__: JSON.stringify(GIT_COMMIT),
+    __COMFYUI_SW_CACHE_VERSION__: JSON.stringify(SERVICE_WORKER_CACHE_VERSION),
     __SENTRY_ENABLED__: JSON.stringify(
       !(process.env.NODE_ENV === 'development' || !process.env.SENTRY_DSN)
     ),

@@ -4,7 +4,11 @@ import { clientsClaim } from 'workbox-core'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
-import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import {
+  CacheFirst,
+  NetworkFirst,
+  StaleWhileRevalidate
+} from 'workbox-strategies'
 
 import {
   isBypassedServiceWorkerPath,
@@ -12,18 +16,35 @@ import {
   isManagedStaticDataPath,
   normalizeScopePath
 } from '@/services/pwa/serviceWorkerPaths'
+import {
+  getRuntimeCacheName,
+  isOutdatedRuntimeCacheName,
+  normalizeRuntimeCacheGroups,
+  PURGE_RUNTIME_CACHES_MESSAGE
+} from '@/services/pwa/runtimeCacheProtocol'
 
-const PAGE_CACHE = 'comfyui-frontend-pages'
-const STATIC_CACHE = 'comfyui-frontend-static'
-const DATA_CACHE = 'comfyui-frontend-data'
+const PAGE_CACHE = getRuntimeCacheName('pages')
+const STATIC_CACHE = getRuntimeCacheName('static')
+const DATA_CACHE = getRuntimeCacheName('data')
 const SCOPE_PATH = normalizeScopePath(new URL(self.registration.scope).pathname)
 
 clientsClaim()
 
+self.addEventListener('activate', (event) => {
+  event.waitUntil(deleteOutdatedRuntimeCaches())
+})
+
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     void self.skipWaiting()
+    return
   }
+
+  if (event.data?.type !== PURGE_RUNTIME_CACHES_MESSAGE) return
+
+  event.waitUntil(
+    purgeRuntimeCaches(normalizeRuntimeCacheGroups(event.data?.groups))
+  )
 })
 
 precacheAndRoute(self.__WB_MANIFEST)
@@ -44,6 +65,21 @@ registerRoute(
     ]
   })
 )
+
+async function deleteOutdatedRuntimeCaches() {
+  const cacheNames = await caches.keys()
+  await Promise.all(
+    cacheNames
+      .filter((cacheName) => isOutdatedRuntimeCacheName(cacheName))
+      .map((cacheName) => caches.delete(cacheName))
+  )
+}
+
+async function purgeRuntimeCaches(groups) {
+  await Promise.all(
+    groups.map((group) => caches.delete(getRuntimeCacheName(group)))
+  )
+}
 
 registerRoute(
   ({ request, url }) =>

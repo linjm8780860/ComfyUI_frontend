@@ -45,6 +45,25 @@ Service Worker 源码位于 [`src/service-worker.js`](../../src/service-worker.j
 统一的路径匹配逻辑在
 [`src/services/pwa/serviceWorkerPaths.ts`](../../src/services/pwa/serviceWorkerPaths.ts)。
 
+### Runtime Cache 替换机制
+
+运行时 cache 名称不再是固定值，而是带上构建级版本后缀：
+
+- `comfyui-frontend-pages-<cacheVersion>`
+- `comfyui-frontend-static-<cacheVersion>`
+- `comfyui-frontend-data-<cacheVersion>`
+
+其中 `cacheVersion` 默认取：
+
+1. `FRONTEND_CACHE_VERSION`
+2. `FRONTEND_COMMIT_HASH` / `git rev-parse HEAD`
+3. `package.json` 里的版本号
+
+这样即使某些资源 URL 不带 hash，只要前端部署版本变了，新 worker 也会切到新的 runtime cache，并在激活时清掉旧版本 cache，避免长期命中旧内容。
+
+相关协议和命名逻辑位于
+[`src/services/pwa/runtimeCacheProtocol.ts`](../../src/services/pwa/runtimeCacheProtocol.ts)。
+
 ### 更新切换逻辑
 
 前端注册和更新处理逻辑位于
@@ -61,10 +80,30 @@ Service Worker 源码位于 [`src/service-worker.js`](../../src/service-worker.j
 - 对于更新场景，在新的 worker 接管页面后会触发刷新
 - 如果同源核心前端 chunk 加载失败，会尝试以下恢复策略：
   - 优先激活等待中的新 worker
-  - 如果没有 waiting worker，则直接强制刷新页面
+  - 如果没有 waiting worker，则先清理 `static/data` runtime cache，再强制刷新页面
 
 `preload` 和资源加载错误恢复逻辑已经接到
 [`src/App.vue`](../../src/App.vue)。
+
+此外，前端现在也暴露了一个显式的 SW 清缓存入口：
+
+- [`purgeManagedRuntimeCaches()`](../../src/services/pwa/serviceWorkerManager.ts)
+
+它会向 active service worker 发送 `PURGE_RUNTIME_CACHES` 消息，可按 cache group
+定向清理：
+
+- `pages`
+- `static`
+- `data`
+
+如果你后面要接“后端接口决定哪些缓存要换掉”，推荐做法是：
+
+1. 前端定期以 `cache: 'no-store'` 请求一个版本/epoch 接口
+2. 接口只返回版本号或要清理的 group，不参与每个资源请求
+3. 前端对比后调用 `purgeManagedRuntimeCaches(['static'])` 之类的方法
+4. 必要时再刷新页面
+
+不建议让 Service Worker 在每次 `fetch` 时都先请求接口决定是否放行，这会明显增加首屏和资源加载耦合。
 
 ### Manifest 兼容性调整
 

@@ -12,6 +12,11 @@ import {
   isManagedFrontendAssetUrl,
   shouldActivateWaitingServiceWorker
 } from './serviceWorkerPaths'
+import {
+  normalizeRuntimeCacheGroups,
+  PURGE_RUNTIME_CACHES_MESSAGE,
+  type RuntimeCacheGroup
+} from './runtimeCacheProtocol'
 
 type RefreshReason = 'stale-asset' | 'update-available'
 
@@ -72,6 +77,31 @@ function activateWaitingWorker(reason: RefreshReason) {
 
 function scheduleUpdateCheck() {
   void workboxInstance?.update()
+}
+
+async function postToServiceWorker(
+  message: Record<string, unknown>
+): Promise<boolean> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return false
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready
+    const targetWorker =
+      navigator.serviceWorker.controller || registration.active
+
+    if (!targetWorker) return false
+
+    targetWorker.postMessage(message)
+    return true
+  } catch (error) {
+    console.error(
+      '[pwa] Failed to post a message to the service worker.',
+      error
+    )
+    return false
+  }
 }
 
 export async function initializeServiceWorkerManager(
@@ -158,8 +188,25 @@ export function recoverManagedAssetLoad(rawUrl: string | null): boolean {
       )
     }
   } else {
-    hardReload('stale-asset')
+    void purgeManagedRuntimeCaches(['static', 'data'])
+      .catch((error) => {
+        console.error('[pwa] Failed to purge stale runtime caches.', error)
+      })
+      .finally(() => {
+        hardReload('stale-asset')
+      })
   }
 
   return true
+}
+
+export async function purgeManagedRuntimeCaches(
+  groups?: readonly RuntimeCacheGroup[]
+): Promise<boolean> {
+  const normalizedGroups = normalizeRuntimeCacheGroups(groups)
+
+  return postToServiceWorker({
+    type: PURGE_RUNTIME_CACHES_MESSAGE,
+    groups: normalizedGroups
+  })
 }
