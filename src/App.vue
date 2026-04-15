@@ -16,12 +16,13 @@ import { computed, onMounted } from 'vue'
 
 import GlobalDialog from '@/components/dialog/GlobalDialog.vue'
 import config from '@/config'
-import { useWorkspaceStore } from '@/stores/workspaceStore'
-import { useConflictDetection } from '@/workbench/extensions/manager/composables/useConflictDetection'
-
-import { electronAPI } from '@/utils/envUtil'
 import { isDesktop } from '@/platform/distribution/types'
 import { app } from '@/scripts/app'
+import { recoverManagedAssetLoad } from '@/services/pwa/serviceWorkerManager'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { useConflictDetection } from '@/workbench/extensions/manager/composables/useConflictDetection'
+import { electronAPI } from '@/utils/envUtil'
+import { parsePreloadError } from '@/utils/preloadErrorUtil'
 
 const workspaceStore = useWorkspaceStore()
 app.extensionManager = useWorkspaceStore()
@@ -40,6 +41,20 @@ const showContextMenu = (event: MouseEvent) => {
   }
 }
 
+function handleResourceError(url: string, tagName: string) {
+  console.error('[resource:loadError]', { url, tagName })
+  recoverManagedAssetLoad(url)
+
+  if (__DISTRIBUTION__ === 'cloud') {
+    captureException(new Error(`Resource load failed: ${url}`), {
+      tags: {
+        error_type: 'resource_load_error',
+        tag_name: tagName
+      }
+    })
+  }
+}
+
 onMounted(() => {
   window['__COMFYUI_FRONTEND_VERSION__'] = config.app_version
 
@@ -51,15 +66,52 @@ onMounted(() => {
   // See: https://vite.dev/guide/build#load-error-handling
   window.addEventListener('vite:preloadError', (event) => {
     event.preventDefault()
-    // eslint-disable-next-line no-undef
+    const info = parsePreloadError(event.payload)
+
     if (__DISTRIBUTION__ === 'cloud') {
       captureException(event.payload, {
-        tags: { error_type: 'vite_preload_error' }
+        tags: {
+          error_type: 'vite_preload_error',
+          file_type: info.fileType,
+          chunk_name: info.chunkName ?? undefined
+        },
+        contexts: {
+          preload: {
+            url: info.url,
+            fileType: info.fileType,
+            chunkName: info.chunkName
+          }
+        }
       })
     } else {
-      console.error('[vite:preloadError]', event.payload)
+      console.error('[vite:preloadError]', {
+        url: info.url,
+        fileType: info.fileType,
+        chunkName: info.chunkName,
+        message: info.message
+      })
     }
+
+    recoverManagedAssetLoad(info.url)
   })
+
+  if (__DISTRIBUTION__ !== 'localhost') {
+    window.addEventListener(
+      'error',
+      (event) => {
+        const target = event.target
+        if (target instanceof HTMLScriptElement) {
+          handleResourceError(target.src, 'script')
+        } else if (
+          target instanceof HTMLLinkElement &&
+          target.rel === 'stylesheet'
+        ) {
+          handleResourceError(target.href, 'link')
+        }
+      },
+      true
+    )
+  }
 
   // Initialize conflict detection in background
   // This runs async and doesn't block UI setup

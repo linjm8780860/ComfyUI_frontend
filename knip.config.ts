@@ -6,15 +6,21 @@ const config: KnipConfig = {
       entry: [
         '{build,scripts}/**/*.{js,ts}',
         'src/assets/css/style.css',
-        'src/main.ts',
+        'src/service-worker.js',
         'src/scripts/ui/menu/index.ts',
         'src/types/index.ts',
         'src/storybook/mocks/**/*.ts'
       ],
-      project: ['**/*.{js,ts,vue}', '*.{js,ts,mts}']
+      project: [
+        '**/*.{js,ts,vue}',
+        '*.{js,ts,mts}',
+        '!apps/**',
+        '!packages/**',
+        '!comfyui_frontend_package/comfyui_frontend_package/static/**'
+      ]
     },
     'apps/desktop-ui': {
-      entry: ['src/main.ts', 'src/i18n.ts'],
+      entry: ['src/i18n.ts'],
       project: ['src/**/*.{js,ts,vue}']
     },
     'packages/tailwind-utils': {
@@ -24,7 +30,7 @@ const config: KnipConfig = {
       project: ['src/**/*.{js,ts}']
     }
   },
-  ignoreBinaries: ['python3', 'gh'],
+  ignoreBinaries: ['python3'],
   ignoreDependencies: [
     // Weird importmap things
     '@iconify-json/lucide',
@@ -36,10 +42,7 @@ const config: KnipConfig = {
   ],
   ignore: [
     // Auto generated manager types
-    'src/workbench/extensions/manager/types/generatedManagerTypes.ts',
-    'packages/registry-types/src/comfyRegistryTypes.ts',
-    // Used by a custom node (that should move off of this)
-    'src/scripts/ui/components/splitButton.ts'
+    'src/workbench/extensions/manager/types/generatedManagerTypes.ts'
   ],
   compilers: {
     // https://github.com/webpro-nl/knip/issues/1008#issuecomment-3207756199

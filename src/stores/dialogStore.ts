@@ -4,9 +4,8 @@ import { merge } from 'es-toolkit/compat'
 import { defineStore } from 'pinia'
 import type { DialogPassThroughOptions } from 'primevue/dialog'
 import { markRaw, ref } from 'vue'
-import type { Component } from 'vue'
+import type { Component, Ref } from 'vue'
 
-import type GlobalDialog from '@/components/dialog/GlobalDialog.vue'
 import type { ComponentAttrs } from 'vue-component-type-helpers'
 
 type DialogPosition =
@@ -23,6 +22,9 @@ type DialogPosition =
 interface CustomDialogComponentProps {
   maximizable?: boolean
   maximized?: boolean
+  onMaximize?: () => void
+  onUnmaximize?: () => void
+  onAfterHide?: () => void
   onClose?: () => void
   closable?: boolean
   modal?: boolean
@@ -34,8 +36,9 @@ interface CustomDialogComponentProps {
   headless?: boolean
 }
 
-export type DialogComponentProps = ComponentAttrs<typeof GlobalDialog> &
-  CustomDialogComponentProps
+export type DialogComponentProps = CustomDialogComponentProps & {
+  [key: string]: unknown
+}
 
 export interface DialogInstance<
   H extends Component = Component,
@@ -51,6 +54,22 @@ export interface DialogInstance<
   contentProps: ComponentAttrs<B>
   footerComponent?: F
   footerProps?: ComponentAttrs<F>
+  dialogComponentProps: DialogComponentProps
+  priority: number
+}
+
+type StoredDialogProps = Record<string, unknown>
+
+interface StoredDialogInstance {
+  key: string
+  visible: boolean
+  title?: string
+  headerComponent?: Component
+  headerProps?: StoredDialogProps
+  component: Component
+  contentProps: StoredDialogProps
+  footerComponent?: Component
+  footerProps?: StoredDialogProps
   dialogComponentProps: DialogComponentProps
   priority: number
 }
@@ -77,8 +96,26 @@ export interface ShowDialogOptions<
   priority?: number
 }
 
-export const useDialogStore = defineStore('dialog', () => {
-  const dialogStack = ref<DialogInstance[]>([])
+interface DialogStore {
+  dialogStack: Ref<StoredDialogInstance[]>
+  riseDialog: (options: { key: string }) => void
+  closeDialog: (options?: { key: string }) => void
+  showDialog: <
+    H extends Component = Component,
+    B extends Component = Component,
+    F extends Component = Component
+  >(
+    options: ShowDialogOptions<H, B, F>
+  ) => StoredDialogInstance
+  showExtensionDialog: (
+    options: ShowDialogOptions & { key: string }
+  ) => StoredDialogInstance | undefined
+  isDialogOpen: (key: string) => boolean
+  activeKey: Ref<string | null>
+}
+
+export const useDialogStore = defineStore('dialog', (): DialogStore => {
+  const dialogStack = ref<StoredDialogInstance[]>([])
 
   /**
    * The key of the currently active (top-most) dialog.
@@ -92,16 +129,33 @@ export const useDialogStore = defineStore('dialog', () => {
    * Inserts a dialog into the stack at the correct position based on priority.
    * Higher priority dialogs are placed before lower priority ones.
    */
-  function insertDialogByPriority(dialog: DialogInstance) {
+  function insertDialogByPriority(dialog: StoredDialogInstance) {
     const insertIndex = dialogStack.value.findIndex(
       (d) => d.priority <= dialog.priority
     )
+    const targetIndex =
+      insertIndex === -1 ? dialogStack.value.length : insertIndex
 
-    dialogStack.value.splice(
-      insertIndex === -1 ? dialogStack.value.length : insertIndex,
-      0,
-      dialog
-    )
+    dialogStack.value = [
+      ...dialogStack.value.slice(0, targetIndex),
+      dialog,
+      ...dialogStack.value.slice(targetIndex)
+    ]
+  }
+
+  function removeDialogAtIndex(
+    index: number
+  ): StoredDialogInstance | undefined {
+    const dialog = dialogStack.value[index]
+
+    if (!dialog) return
+
+    dialogStack.value = [
+      ...dialogStack.value.slice(0, index),
+      ...dialogStack.value.slice(index + 1)
+    ]
+
+    return dialog
   }
 
   function riseDialog(options: { key: string }) {
@@ -109,7 +163,8 @@ export const useDialogStore = defineStore('dialog', () => {
 
     const index = dialogStack.value.findIndex((d) => d.key === dialogKey)
     if (index !== -1) {
-      const [dialog] = dialogStack.value.splice(index, 1)
+      const dialog = removeDialogAtIndex(index)
+      if (!dialog) return
       insertDialogByPriority(dialog)
       activeKey.value = dialogKey
       updateCloseOnEscapeStates()
@@ -124,7 +179,7 @@ export const useDialogStore = defineStore('dialog', () => {
 
     targetDialog.dialogComponentProps?.onClose?.()
     const index = dialogStack.value.indexOf(targetDialog)
-    dialogStack.value.splice(index, 1)
+    removeDialogAtIndex(index)
 
     activeKey.value =
       dialogStack.value.length > 0
@@ -138,12 +193,14 @@ export const useDialogStore = defineStore('dialog', () => {
     H extends Component = Component,
     B extends Component = Component,
     F extends Component = Component
-  >(options: ShowDialogOptions<H, B, F> & { key: string }) {
+  >(
+    options: ShowDialogOptions<H, B, F> & { key: string }
+  ): StoredDialogInstance {
     if (dialogStack.value.length >= 10) {
-      dialogStack.value.shift()
+      dialogStack.value = dialogStack.value.slice(1)
     }
 
-    const dialog = {
+    const dialog: StoredDialogInstance = {
       key: options.key,
       visible: true,
       title: options.title,
@@ -154,9 +211,13 @@ export const useDialogStore = defineStore('dialog', () => {
         ? markRaw(options.footerComponent)
         : undefined,
       component: markRaw(options.component),
-      headerProps: { ...options.headerProps },
-      contentProps: { ...options.props },
-      footerProps: { ...options.footerProps },
+      headerProps: options.headerProps
+        ? { ...(options.headerProps as StoredDialogProps) }
+        : undefined,
+      contentProps: { ...(options.props as StoredDialogProps | undefined) },
+      footerProps: options.footerProps
+        ? { ...(options.footerProps as StoredDialogProps) }
+        : undefined,
       priority: options.priority ?? 1,
       dialogComponentProps: {
         maximizable: false,

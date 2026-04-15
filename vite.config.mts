@@ -1,6 +1,7 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
+import { execSync } from 'child_process'
 import { config as dotenvConfig } from 'dotenv'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { Readable } from 'stream'
@@ -14,6 +15,7 @@ import typegpuPlugin from 'unplugin-typegpu/vite'
 import { defineConfig } from 'vitest/config'
 import type { ProxyOptions } from 'vite'
 import { createHtmlPlugin } from 'vite-plugin-html'
+import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 import { comfyAPIPlugin } from './build/plugins'
@@ -55,16 +57,34 @@ const DISTRIBUTION: 'desktop' | 'localhost' | 'cloud' =
 // Can be overridden via IS_NIGHTLY env var for testing
 const IS_NIGHTLY = process.env.IS_NIGHTLY === 'true'
 
+let GIT_COMMIT = process.env.FRONTEND_COMMIT_HASH || ''
+if (!GIT_COMMIT) {
+  try {
+    GIT_COMMIT = execSync('git rev-parse HEAD', { timeout: 5000 })
+      .toString()
+      .trim()
+  } catch {
+    GIT_COMMIT = 'unknown'
+  }
+}
+
+const SERVICE_WORKER_CACHE_VERSION =
+  process.env.FRONTEND_CACHE_VERSION ||
+  (GIT_COMMIT !== 'unknown'
+    ? GIT_COMMIT
+    : process.env.npm_package_version || 'unknown')
+
 // Disable Vue DevTools for production cloud distribution
 const DISABLE_VUE_PLUGINS =
   process.env.DISABLE_VUE_PLUGINS === 'true' ||
   (DISTRIBUTION === 'cloud' && !IS_DEV) ||
   IS_STORYBOOK
 
-const DEV_SEVER_FALLBACK_URL =
-  DISTRIBUTION === 'cloud'
-    ? 'https://stagingcloud.comfy.org'
-    : 'http://127.0.0.1:8188'
+// const DEV_SEVER_FALLBACK_URL =
+//   DISTRIBUTION === 'cloud'
+//     ? 'https://stagingcloud.comfy.org'
+//     : 'http://127.0.0.1:8188'
+const DEV_SEVER_FALLBACK_URL = 'http://127.0.0.1:8188'
 
 const DEV_SERVER_COMFYUI_URL =
   DEV_SERVER_COMFYUI_ENV_URL || DEV_SEVER_FALLBACK_URL
@@ -242,6 +262,22 @@ export default defineConfig({
     tailwindcss(),
     typegpuPlugin({}),
     comfyAPIPlugin(IS_DEV),
+    ...(DISTRIBUTION !== 'desktop'
+      ? [
+          VitePWA({
+            injectRegister: false,
+            manifest: false,
+            includeAssets: ['materialdesignicons.min.css'],
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'service-worker.js',
+            injectManifest: {
+              globPatterns: ['**/*.{ico,png,svg,txt,woff2}'],
+              rollupFormat: 'iife'
+            }
+          })
+        ]
+      : []),
     // Inject legacy user stylesheet links for desktop/localhost only
     {
       name: 'inject-user-stylesheet-links',
@@ -572,6 +608,7 @@ export default defineConfig({
     __COMFYUI_FRONTEND_VERSION__: JSON.stringify(
       process.env.npm_package_version
     ),
+    __COMFYUI_SW_CACHE_VERSION__: JSON.stringify(SERVICE_WORKER_CACHE_VERSION),
     __SENTRY_ENABLED__: JSON.stringify(
       !(process.env.NODE_ENV === 'development' || !process.env.SENTRY_DSN)
     ),

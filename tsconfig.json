@@ -39,7 +39,7 @@
     "eslint.config.ts",
     "global.d.ts",
     "knip.config.ts",
-    "lint-staged.config.ts",
+    "lint-staged.config.mjs",
     "src/**/*.vue",
     "src/**/*",
     "src/types/**/*.d.ts",

@@ -14,6 +14,7 @@ import { VueFire, VueFireAuth } from 'vuefire'
 import { getFirebaseConfig } from '@/config/firebase'
 import '@/lib/litegraph/public/css/litegraph.css'
 import router from '@/router'
+import { initializeServiceWorkerManager } from '@/services/pwa/serviceWorkerManager'
 import { useBootstrapStore } from '@/stores/bootstrapStore'
 
 import App from './App.vue'
@@ -97,3 +98,5 @@ const bootstrapStore = useBootstrapStore(pinia)
 void bootstrapStore.startStoreBootstrap()
 
 app.mount('#vue-app')
+
+void initializeServiceWorkerManager(pinia)

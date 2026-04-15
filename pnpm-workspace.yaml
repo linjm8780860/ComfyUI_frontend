@@ -11,10 +11,9 @@ catalog:
   '@iconify/tailwind4': ^1.2.0
   '@intlify/eslint-plugin-vue-i18n': ^4.1.0
   '@lobehub/i18n-cli': ^1.25.1
-  '@nx/eslint': 22.2.6
-  '@nx/playwright': 22.2.6
-  '@nx/storybook': 22.2.4
-  '@nx/vite': 22.2.6
+  '@nx/eslint': 22.6.5
+  '@nx/storybook': 22.6.5
+  '@nx/vite': 22.6.5
   '@pinia/testing': ^1.0.3
   '@playwright/test': ^1.58.1
   '@primeuix/forms': 0.0.2
@@ -68,7 +67,7 @@ catalog:
   lint-staged: ^16.2.7
   markdown-table: ^3.0.4
   mixpanel-browser: ^2.71.0
-  nx: 22.2.6
+  nx: 22.6.5
   oxfmt: ^0.26.0
   oxlint: ^1.33.0
   oxlint-tsgolint: ^0.9.1
@@ -95,6 +94,7 @@ catalog:
   vite: ^8.0.0-beta.8
   vite-plugin-dts: ^4.5.4
   vite-plugin-html: ^3.2.2
+  vite-plugin-pwa: ^1.2.0
   vite-plugin-vue-devtools: ^8.0.0
   vitest: ^4.0.16
   vue: ^3.5.13
@@ -104,6 +104,12 @@ catalog:
   vue-router: ^4.4.3
   vue-tsc: ^3.2.1
   vuefire: ^3.2.1
+  workbox-core: ^7.4.0
+  workbox-expiration: ^7.4.0
+  workbox-precaching: ^7.4.0
+  workbox-routing: ^7.4.0
+  workbox-strategies: ^7.4.0
+  workbox-window: ^7.4.0
   wwobjloader2: ^6.2.1
   yjs: ^13.6.27
   zod: ^3.23.8
