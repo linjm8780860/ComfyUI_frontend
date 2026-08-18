@@ -52,7 +52,8 @@ import { useProgressFavicon } from '@/composables/useProgressFavicon'
 import { SERVER_CONFIG_ITEMS } from '@/constants/serverConfig'
 import { i18n, loadLocale } from '@/i18n'
 import ModelImportProgressDialog from '@/platform/assets/components/ModelImportProgressDialog.vue'
-import { isCloud, isDesktop } from '@/platform/distribution/types'
+import { isDesktop } from '@/platform/distribution/types'
+import { useLocaleStore } from '@/platform/settings/localeStore'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useTelemetry } from '@/platform/telemetry'
 import { useFrontendVersionMismatchWarning } from '@/platform/updates/common/useFrontendVersionMismatchWarning'
@@ -66,7 +67,6 @@ import { useKeybindingService } from '@/platform/keybindings/keybindingService'
 import { useAssetsStore } from '@/stores/assetsStore'
 import { useCommandStore } from '@/stores/commandStore'
 import { useExecutionStore } from '@/stores/executionStore'
-import { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
 import { useMenuItemStore } from '@/stores/menuItemStore'
 import { useModelStore } from '@/stores/modelStore'
 import { useNodeDefStore, useNodeFrequencyStore } from '@/stores/nodeDefStore'
@@ -89,6 +89,8 @@ useBrowserTabTitle()
 const { t } = useI18n()
 const toast = useToast()
 const settingStore = useSettingStore()
+const localeStore = useLocaleStore()
+const { locale } = storeToRefs(localeStore)
 const executionStore = useExecutionStore()
 const colorPaletteStore = useColorPaletteStore()
 const queueStore = useQueueStore()
@@ -98,16 +100,16 @@ const graphCanvasContainerRef = ref<HTMLDivElement | null>(null)
 const { linearMode } = storeToRefs(useCanvasStore())
 
 const telemetry = useTelemetry()
-const firebaseAuthStore = useFirebaseAuthStore()
-let hasTrackedLogin = false
 
 watch(
   () => colorPaletteStore.completedActivePalette,
   (newTheme) => {
     const DARK_THEME_CLASS = 'dark-theme'
     if (newTheme.light_theme) {
+      document.documentElement.classList.remove(DARK_THEME_CLASS)
       document.body.classList.remove(DARK_THEME_CLASS)
     } else {
+      document.documentElement.classList.add(DARK_THEME_CLASS)
       document.body.classList.add(DARK_THEME_CLASS)
     }
 
@@ -164,15 +166,16 @@ watchEffect(() => {
 })
 
 watchEffect(async () => {
-  const locale = settingStore.get('Comfy.Locale')
-  if (locale) {
+  const selectedLocale = locale.value
+  if (selectedLocale) {
     // Load the locale dynamically if not already loaded
     try {
-      await loadLocale(locale)
+      await loadLocale(selectedLocale)
       // Type assertion is safe here as loadLocale validates the locale exists
-      i18n.global.locale.value = locale as typeof i18n.global.locale.value
+      i18n.global.locale.value =
+        selectedLocale as typeof i18n.global.locale.value
     } catch (error) {
-      console.error(`Failed to switch to locale "${locale}":`, error)
+      console.error(`Failed to switch to locale "${selectedLocale}":`, error)
     }
   }
 })
@@ -282,22 +285,18 @@ void nextTick(() => {
 const onGraphReady = () => {
   runWhenGlobalIdle(() => {
     // Track user login when app is ready in graph view (cloud only)
-    if (isCloud && firebaseAuthStore.isAuthenticated && !hasTrackedLogin) {
-      telemetry?.trackUserLoggedIn()
-      hasTrackedLogin = true
-    }
 
     // Set up page visibility tracking (cloud only)
-    if (isCloud && telemetry) {
+    if (false && telemetry) {
       useEventListener(document, 'visibilitychange', () => {
-        telemetry.trackPageVisibilityChanged({
+        telemetry?.trackPageVisibilityChanged({
           visibility_state: document.visibilityState as 'visible' | 'hidden'
         })
       })
     }
 
     // Set up tab count tracking (cloud only)
-    if (isCloud && telemetry) {
+    if (false && telemetry) {
       const tabCountChannel = new BroadcastChannel('comfyui-tab-count')
       const activeTabs = new Map<string, number>()
       const currentTabId = crypto.randomUUID()
@@ -331,7 +330,7 @@ const onGraphReady = () => {
 
         // Track tab count (include current tab)
         const tabCount = activeTabs.size + 1
-        telemetry.trackTabCount({ tab_count: tabCount })
+        telemetry?.trackTabCount({ tab_count: tabCount })
       }, 60000 * 5)
 
       // Send initial heartbeat

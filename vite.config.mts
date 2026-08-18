@@ -1,6 +1,6 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
+import { execSync } from 'child_process'
 import { config as dotenvConfig } from 'dotenv'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { Readable } from 'stream'
@@ -14,6 +14,9 @@ import typegpuPlugin from 'unplugin-typegpu/vite'
 import { defineConfig } from 'vitest/config'
 import type { ProxyOptions } from 'vite'
 import { createHtmlPlugin } from 'vite-plugin-html'
+// BizyAir: Service Worker generation is temporarily disabled. Restore this
+// import with the VitePWA plugin block below when SW is re-enabled.
+// import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 import { comfyAPIPlugin } from './build/plugins'
@@ -21,7 +24,7 @@ import { comfyAPIPlugin } from './build/plugins'
 dotenvConfig()
 
 const IS_DEV = process.env.NODE_ENV === 'development'
-const SHOULD_MINIFY = process.env.ENABLE_MINIFY === 'true'
+const SHOULD_MINIFY = process.env.ENABLE_MINIFY !== 'false'
 const ANALYZE_BUNDLE = process.env.ANALYZE_BUNDLE === 'true'
 // vite dev server will listen on all addresses, including LAN and public addresses
 const VITE_REMOTE_DEV = process.env.VITE_REMOTE_DEV === 'true'
@@ -29,48 +32,49 @@ const DISABLE_TEMPLATES_PROXY = process.env.DISABLE_TEMPLATES_PROXY === 'true'
 const GENERATE_SOURCEMAP = process.env.GENERATE_SOURCEMAP !== 'false'
 const IS_STORYBOOK = process.env.npm_lifecycle_event === 'storybook'
 
-// Open Graph / Twitter Meta Tags Constants
-const VITE_OG_URL = 'https://cloud.comfy.org'
-const VITE_OG_TITLE =
-  'Comfy Cloud: Run ComfyUI online | Zero Setup, Powerful GPUs, Create anywhere'
-const VITE_OG_DESC =
-  'Bring your creative ideas to life with Comfy Cloud. Build and run your workflows to generate stunning images and videos instantly using powerful GPUs — all from your browser, no installation required.'
-const VITE_OG_IMAGE = `${VITE_OG_URL}/assets/images/og-image.png`
-const VITE_OG_KEYWORDS = 'ComfyUI, Comfy Cloud, ComfyUI online'
-
-// Auto-detect cloud mode from DEV_SERVER_COMFYUI_URL
+// Distribution: 'desktop' or 'localhost' (cloud mode removed)
 const DEV_SERVER_COMFYUI_ENV_URL = process.env.DEV_SERVER_COMFYUI_URL
-const IS_CLOUD_URL = DEV_SERVER_COMFYUI_ENV_URL?.includes('.comfy.org')
 
-const DISTRIBUTION: 'desktop' | 'localhost' | 'cloud' =
+const DISTRIBUTION: 'desktop' | 'localhost' =
   process.env.DISTRIBUTION === 'desktop' ||
-  process.env.DISTRIBUTION === 'localhost' ||
-  process.env.DISTRIBUTION === 'cloud'
+  process.env.DISTRIBUTION === 'localhost'
     ? process.env.DISTRIBUTION
-    : IS_CLOUD_URL
-      ? 'cloud'
-      : 'localhost'
+    : 'localhost'
 
 // Nightly builds are from main branch; RC/stable builds are from core/* branches
 // Can be overridden via IS_NIGHTLY env var for testing
 const IS_NIGHTLY = process.env.IS_NIGHTLY === 'true'
 
-// Disable Vue DevTools for production cloud distribution
-const DISABLE_VUE_PLUGINS =
-  process.env.DISABLE_VUE_PLUGINS === 'true' ||
-  (DISTRIBUTION === 'cloud' && !IS_DEV) ||
-  IS_STORYBOOK
+let GIT_COMMIT = process.env.FRONTEND_COMMIT_HASH || ''
+if (!GIT_COMMIT) {
+  try {
+    GIT_COMMIT = execSync('git rev-parse HEAD', { timeout: 5000 })
+      .toString()
+      .trim()
+  } catch {
+    GIT_COMMIT = 'unknown'
+  }
+}
 
-const DEV_SEVER_FALLBACK_URL =
-  DISTRIBUTION === 'cloud'
-    ? 'https://stagingcloud.comfy.org'
-    : 'http://127.0.0.1:8188'
+const EXTENSIONS_VERSION =
+  process.env.EXTENSIONS_VERSION ||
+  new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+
+const SERVICE_WORKER_CACHE_VERSION =
+  process.env.FRONTEND_CACHE_VERSION ||
+  (GIT_COMMIT !== 'unknown'
+    ? GIT_COMMIT
+    : process.env.npm_package_version || 'unknown')
+
+const DISABLE_VUE_PLUGINS =
+  process.env.DISABLE_VUE_PLUGINS === 'true' || IS_STORYBOOK
+
+const DEV_SEVER_FALLBACK_URL = 'http://127.0.0.1:8188'
 
 const DEV_SERVER_COMFYUI_URL =
   DEV_SERVER_COMFYUI_ENV_URL || DEV_SEVER_FALLBACK_URL
 
-const cloudProxyConfig =
-  DISTRIBUTION === 'cloud' ? { secure: false, changeOrigin: true } : {}
+const proxyConfig = {}
 
 function handleGcsRedirect(
   proxyRes: IncomingMessage,
@@ -130,7 +134,7 @@ function handleGcsRedirect(
 
 const gcsRedirectProxyConfig: ProxyOptions = {
   target: DEV_SERVER_COMFYUI_URL,
-  ...cloudProxyConfig,
+  ...proxyConfig,
   selfHandleResponse: true,
   configure: (proxy) => {
     proxy.on('proxyRes', handleGcsRedirect)
@@ -138,7 +142,7 @@ const gcsRedirectProxyConfig: ProxyOptions = {
 }
 
 export default defineConfig({
-  base: DISTRIBUTION === 'cloud' ? '/' : '',
+  base: '',
   server: {
     host: VITE_REMOTE_DEV ? '0.0.0.0' : undefined,
     watch: {
@@ -162,19 +166,15 @@ export default defineConfig({
     proxy: {
       '/internal': {
         target: DEV_SERVER_COMFYUI_URL,
-        ...cloudProxyConfig
+        ...proxyConfig
       },
 
-      ...(DISTRIBUTION === 'cloud'
-        ? {
-            '/api/view': gcsRedirectProxyConfig,
-            '/api/viewvideo': gcsRedirectProxyConfig
-          }
-        : {}),
+      '/api/view': gcsRedirectProxyConfig,
+      '/api/viewvideo': gcsRedirectProxyConfig,
 
       '/api': {
         target: DEV_SERVER_COMFYUI_URL,
-        ...cloudProxyConfig,
+        ...proxyConfig,
         bypass: (req, res, _options) => {
           if (!res) return null
 
@@ -185,13 +185,6 @@ export default defineConfig({
             return false
           }
 
-          // Bypass multi-user auth check from staging (cloud only)
-          if (DISTRIBUTION === 'cloud' && req.url === '/api/users') {
-            res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({})) // Return empty object to simulate single-user mode
-            return false
-          }
-
           return null
         }
       },
@@ -199,31 +192,31 @@ export default defineConfig({
       '/ws': {
         target: DEV_SERVER_COMFYUI_URL,
         ws: true,
-        ...cloudProxyConfig
+        ...proxyConfig
       },
 
       '/workflow_templates': {
         target: DEV_SERVER_COMFYUI_URL,
-        ...cloudProxyConfig
+        ...proxyConfig
       },
 
       '/extensions': {
         target: DEV_SERVER_COMFYUI_URL,
         changeOrigin: true,
-        ...cloudProxyConfig
+        ...proxyConfig
       },
 
       '/docs': {
         target: DEV_SERVER_COMFYUI_URL,
         changeOrigin: true,
-        ...cloudProxyConfig
+        ...proxyConfig
       },
 
       ...(!DISABLE_TEMPLATES_PROXY
         ? {
             '/templates': {
               target: DEV_SERVER_COMFYUI_URL,
-              ...cloudProxyConfig
+              ...proxyConfig
             }
           }
         : {}),
@@ -242,13 +235,28 @@ export default defineConfig({
     tailwindcss(),
     typegpuPlugin({}),
     comfyAPIPlugin(IS_DEV),
-    // Inject legacy user stylesheet links for desktop/localhost only
+    // BizyAir: Service Worker generation is temporarily disabled.
+    // ...(DISTRIBUTION !== 'desktop'
+    //   ? [
+    //       VitePWA({
+    //         injectRegister: false,
+    //         manifest: false,
+    //         includeAssets: ['materialdesignicons.min.css'],
+    //         strategies: 'injectManifest',
+    //         srcDir: 'src',
+    //         filename: 'service-worker.js',
+    //         injectManifest: {
+    //           globPatterns: ['**/*.{ico,png,svg,txt,woff2}'],
+    //           rollupFormat: 'iife'
+    //         }
+    //       })
+    //     ]
+    //   : []),
+    // Inject legacy user stylesheet links
     {
       name: 'inject-user-stylesheet-links',
       enforce: 'post',
       transformIndexHtml(html) {
-        if (DISTRIBUTION === 'cloud') return html
-
         return {
           html,
           tags: [
@@ -275,90 +283,6 @@ export default defineConfig({
       }
     },
 
-    // Twitter/Open Graph meta tags plugin (cloud distribution only)
-    {
-      name: 'inject-twitter-meta',
-      transformIndexHtml(html) {
-        if (DISTRIBUTION !== 'cloud') return html
-
-        return {
-          html,
-          tags: [
-            // Basic SEO
-            { tag: 'title', children: VITE_OG_TITLE, injectTo: 'head' },
-            {
-              tag: 'meta',
-              attrs: { name: 'description', content: VITE_OG_DESC },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { name: 'keywords', content: VITE_OG_KEYWORDS },
-              injectTo: 'head'
-            },
-
-            // Twitter Card tags
-            {
-              tag: 'meta',
-              attrs: { name: 'twitter:card', content: 'summary_large_image' },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { name: 'twitter:title', content: VITE_OG_TITLE },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { name: 'twitter:description', content: VITE_OG_DESC },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { name: 'twitter:image', content: VITE_OG_IMAGE },
-              injectTo: 'head'
-            },
-
-            // Open Graph tags (Twitter fallback & other platforms)
-            {
-              tag: 'meta',
-              attrs: { property: 'og:title', content: VITE_OG_TITLE },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { property: 'og:description', content: VITE_OG_DESC },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { property: 'og:image', content: VITE_OG_IMAGE },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { property: 'og:url', content: VITE_OG_URL },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { property: 'og:type', content: 'website' },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { property: 'og:site_name', content: 'Comfy Cloud' },
-              injectTo: 'head'
-            },
-            {
-              tag: 'meta',
-              attrs: { property: 'og:locale', content: 'en_US' },
-              injectTo: 'head'
-            }
-          ]
-        }
-      }
-    },
     Icons({
       compiler: 'vue3',
       customCollections: {
@@ -391,28 +315,9 @@ export default defineConfig({
             template: 'treemap' // or 'sunburst', 'network'
           })
         ]
-      : []),
-
-    // Sentry sourcemap upload plugin
-    // Only runs during cloud production builds when all Sentry env vars are present
-    // Requires: SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT env vars
-    ...(DISTRIBUTION === 'cloud' &&
-    process.env.SENTRY_AUTH_TOKEN &&
-    process.env.SENTRY_ORG &&
-    process.env.SENTRY_PROJECT &&
-    !IS_DEV
-      ? [
-          sentryVitePlugin({
-            org: process.env.SENTRY_ORG,
-            project: process.env.SENTRY_PROJECT,
-            authToken: process.env.SENTRY_AUTH_TOKEN,
-            sourcemaps: {
-              // Delete source maps after upload to prevent public access
-              filesToDeleteAfterUpload: ['**/*.map']
-            }
-          })
-        ]
       : [])
+
+    // Sentry sourcemap upload plugin removed (not needed for SaaS deployment)
   ],
 
   build: {
@@ -478,11 +383,6 @@ export default defineConfig({
               priority: 20
             },
 
-            {
-              name: 'vendor-firebase',
-              test: /[\\/]node_modules[\\/](@?firebase|@firebase)[\\/]/,
-              priority: 15
-            },
             {
               name: 'vendor-sentry',
               test: /[\\/]node_modules[\\/]@sentry[\\/]/,
@@ -572,6 +472,7 @@ export default defineConfig({
     __COMFYUI_FRONTEND_VERSION__: JSON.stringify(
       process.env.npm_package_version
     ),
+    __COMFYUI_SW_CACHE_VERSION__: JSON.stringify(SERVICE_WORKER_CACHE_VERSION),
     __SENTRY_ENABLED__: JSON.stringify(
       !(process.env.NODE_ENV === 'development' || !process.env.SENTRY_DSN)
     ),
@@ -580,7 +481,8 @@ export default defineConfig({
     __ALGOLIA_API_KEY__: JSON.stringify(process.env.ALGOLIA_API_KEY || ''),
     __USE_PROD_CONFIG__: process.env.USE_PROD_CONFIG === 'true',
     __DISTRIBUTION__: JSON.stringify(DISTRIBUTION),
-    __IS_NIGHTLY__: JSON.stringify(IS_NIGHTLY)
+    __IS_NIGHTLY__: JSON.stringify(IS_NIGHTLY),
+    __COMFYUI_EXTENSIONS_VERSION__: JSON.stringify(EXTENSIONS_VERSION)
   },
 
   resolve: {

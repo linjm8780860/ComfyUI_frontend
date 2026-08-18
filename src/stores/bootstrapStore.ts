@@ -1,11 +1,9 @@
-import { until, useAsyncState } from '@vueuse/core'
+import { useAsyncState } from '@vueuse/core'
 import { defineStore, storeToRefs } from 'pinia'
 
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
 import { api } from '@/scripts/api'
-import { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
 import { useUserStore } from '@/stores/userStore'
 
 export const useBootstrapStore = defineStore('bootstrap', () => {
@@ -39,13 +37,10 @@ export const useBootstrapStore = defineStore('bootstrap', () => {
     const userStore = useUserStore()
     await userStore.initialize()
 
-    if (isCloud) {
-      const { isInitialized } = storeToRefs(useFirebaseAuthStore())
-      await until(isInitialized).toBe(true)
-    }
-
     const { needsLogin } = storeToRefs(userStore)
-    await until(needsLogin).toBe(false)
+    while (needsLogin.value) {
+      await new Promise((r) => setTimeout(r, 100))
+    }
 
     void loadI18n()
     loadAuthenticatedStores()
