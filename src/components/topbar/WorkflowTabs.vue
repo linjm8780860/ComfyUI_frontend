@@ -73,7 +73,7 @@
     >
       <TopMenuHelpButton />
       <CurrentUserButton
-        v-if="isLoggedIn"
+        v-if="false"
         :show-arrow="false"
         compact
         class="shrink-0 p-1"
@@ -101,12 +101,10 @@ import { useI18n } from 'vue-i18n'
 
 import OverlayIcon from '@/components/common/OverlayIcon.vue'
 import type { OverlayIconProps } from '@/components/common/OverlayIcon.vue'
-import CurrentUserButton from '@/components/topbar/CurrentUserButton.vue'
 import LoginButton from '@/components/topbar/LoginButton.vue'
 import TopMenuHelpButton from '@/components/topbar/TopMenuHelpButton.vue'
 import WorkflowTab from '@/components/topbar/WorkflowTab.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
 import { useOverflowObserver } from '@/composables/element/useOverflowObserver'
 import { useWorkflowActionsMenu } from '@/composables/useWorkflowActionsMenu'
 import { useSettingStore } from '@/platform/settings/settingStore'
@@ -135,7 +133,6 @@ const workspaceStore = useWorkspaceStore()
 const workflowStore = useWorkflowStore()
 const workflowService = useWorkflowService()
 const commandStore = useCommandStore()
-const { isLoggedIn } = useCurrentUser()
 
 const isIntegratedTabBar = computed(
   () => settingStore.get('Comfy.UI.TabBarLayout') === 'Integrated'

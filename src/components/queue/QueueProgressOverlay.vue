@@ -75,7 +75,6 @@ import { useQueueProgress } from '@/composables/queue/useQueueProgress'
 import { useResultGallery } from '@/composables/queue/useResultGallery'
 import { useErrorHandling } from '@/composables/useErrorHandling'
 import { useAssetSelectionStore } from '@/platform/assets/composables/useAssetSelectionStore'
-import { isCloud } from '@/platform/distribution/types'
 import { api } from '@/scripts/api'
 import { useAssetsStore } from '@/stores/assetsStore'
 import { useCommandStore } from '@/stores/commandStore'
@@ -201,16 +200,16 @@ const onCancelItem = wrapWithErrorHandlingAsync(async (item: JobListItem) => {
   if (item.state === 'running' || item.state === 'initialization') {
     // Running/initializing jobs: interrupt execution
     // Cloud backend uses deleteItem, local uses interrupt
-    if (isCloud) {
-      await api.deleteItem('queue', promptId)
+    if (false) {
+      await api.deleteItem('queue', promptId!)
     } else {
-      await api.interrupt(promptId)
+      await api.interrupt(promptId!)
     }
     executionStore.clearInitializationByPromptId(promptId)
     await queueStore.update()
   } else if (item.state === 'pending') {
     // Pending jobs: remove from queue
-    await api.deleteItem('queue', promptId)
+    await api.deleteItem('queue', promptId!)
     await queueStore.update()
   }
 })
@@ -297,7 +296,7 @@ const interruptAll = wrapWithErrorHandlingAsync(async () => {
   // Cloud backend supports cancelling specific jobs via /queue delete,
   // while /interrupt always targets the "first" job. Use the targeted API
   // on cloud to ensure we cancel the workflow the user clicked.
-  if (isCloud) {
+  if (false) {
     await Promise.all(promptIds.map((id) => api.deleteItem('queue', id)))
     executionStore.clearInitializationByPromptIds(promptIds)
     await queueStore.update()

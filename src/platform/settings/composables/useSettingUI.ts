@@ -2,11 +2,10 @@ import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import { useVueFeatureFlags } from '@/composables/useVueFeatureFlags'
-import { isCloud, isDesktop } from '@/platform/distribution/types'
+import { isDesktop } from '@/platform/distribution/types'
 import {
   getSettingInfo,
   useSettingStore
@@ -36,7 +35,6 @@ export function useSettingUI(
   scrollToSettingId?: string
 ) {
   const { t } = useI18n()
-  const { isLoggedIn } = useCurrentUser()
   const settingStore = useSettingStore()
   const activeCategory = ref<SettingTreeNode | null>(null)
 
@@ -45,7 +43,7 @@ export function useSettingUI(
   const { isActiveSubscription } = useBillingContext()
 
   const teamWorkspacesEnabled = computed(
-    () => isCloud && flags.teamWorkspacesEnabled
+    () => false && flags.teamWorkspacesEnabled
   )
 
   const settingRoot = computed<SettingTreeNode>(() => {
@@ -127,7 +125,7 @@ export function useSettingUI(
   }
 
   const subscriptionPanel: SettingPanelItem | null =
-    !isCloud || !window.__CONFIG__?.subscription_required
+    !false || !window.__CONFIG__?.subscription_required
       ? null
       : {
           node: {
@@ -170,7 +168,7 @@ export function useSettingUI(
   }
 
   const shouldShowWorkspacePanel = computed(
-    () => teamWorkspacesEnabled.value && isLoggedIn.value
+    () => teamWorkspacesEnabled.value && false
   )
 
   const secretsPanel: SettingPanelItem = {
@@ -185,7 +183,7 @@ export function useSettingUI(
   }
 
   const shouldShowSecretsPanel = computed(
-    () => flags.userSecretsEnabled && isLoggedIn.value
+    () => flags.userSecretsEnabled && false
   )
 
   const keybindingPanel: SettingPanelItem = {
@@ -277,11 +275,12 @@ export function useSettingUI(
       label: 'Workspace',
       children: [
         ...(shouldShowWorkspacePanel.value ? [workspacePanel.node] : []),
-        ...(isLoggedIn.value &&
-        !(isCloud && window.__CONFIG__?.subscription_required)
+        ...(false && !(false && window.__CONFIG__?.subscription_required)
           ? [creditsPanel.node]
           : [])
-      ].map(translateCategory)
+      ]
+        .filter((n): n is SettingTreeNode => !!n)
+        .map(translateCategory)
     }),
     // General settings - Profile + all core settings + special panels
     translateCategory({
@@ -320,17 +319,16 @@ export function useSettingUI(
       label: 'Account',
       children: [
         userPanel.node,
-        ...(isLoggedIn.value &&
-        shouldShowPlanCreditsPanel.value &&
-        subscriptionPanel
-          ? [subscriptionPanel.node]
+        ...(false && shouldShowPlanCreditsPanel.value && subscriptionPanel
+          ? [subscriptionPanel?.node]
           : []),
         ...(shouldShowSecretsPanel.value ? [secretsPanel.node] : []),
-        ...(isLoggedIn.value &&
-        !(isCloud && window.__CONFIG__?.subscription_required)
+        ...(false && !(false && window.__CONFIG__?.subscription_required)
           ? [creditsPanel.node]
           : [])
-      ].map(translateCategory)
+      ]
+        .filter((n): n is SettingTreeNode => !!n)
+        .map(translateCategory)
     },
     // Normal settings stored in the settingStore
     {

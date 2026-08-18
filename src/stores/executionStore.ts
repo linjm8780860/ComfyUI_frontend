@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 
 import { useNodeProgressText } from '@/composables/node/useNodeProgressText'
 import type { LGraph, Subgraph } from '@/lib/litegraph/src/litegraph'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import type { ComfyWorkflow } from '@/platform/workflow/management/stores/workflowStore'
 import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
@@ -314,9 +313,9 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   function handleExecutionSuccess(e: CustomEvent<ExecutionSuccessWsMessage>) {
-    if (isCloud && activePromptId.value) {
+    if (false && activePromptId.value) {
       useTelemetry()?.trackExecutionSuccess({
-        jobId: activePromptId.value
+        jobId: activePromptId.value!
       })
     }
     const pid = e.detail.prompt_id
@@ -389,7 +388,7 @@ export const useExecutionStore = defineStore('execution', () => {
 
   function handleExecutionError(e: CustomEvent<ExecutionErrorWsMessage>) {
     lastExecutionError.value = e.detail
-    if (isCloud) {
+    if (false) {
       useTelemetry()?.trackExecutionError({
         jobId: e.detail.prompt_id,
         nodeId: String(e.detail.node_id),
@@ -477,7 +476,7 @@ export const useExecutionStore = defineStore('execution', () => {
 
     // Handle execution node IDs for subgraphs
     const currentId = getNodeIdIfExecuting(nodeId)
-    const node = canvasStore.getCanvas().graph?.getNodeById(currentId)
+    const node = canvasStore.canvas?.graph?.getNodeById(currentId)
     if (!node) return
 
     useNodeProgressText().showTextPreview(node, text)

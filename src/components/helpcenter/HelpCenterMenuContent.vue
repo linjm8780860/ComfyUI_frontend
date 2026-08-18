@@ -159,7 +159,7 @@ import { useI18n } from 'vue-i18n'
 
 import PuzzleIcon from '@/components/icons/PuzzleIcon.vue'
 import { useExternalLink } from '@/composables/useExternalLink'
-import { isCloud, isDesktop } from '@/platform/distribution/types'
+import { isDesktop } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useTelemetry } from '@/platform/telemetry'
 import type { ReleaseNote } from '@/platform/updates/common/releaseService'
@@ -324,7 +324,7 @@ const menuItems = computed<MenuItem[]>(() => {
       showExternalIcon: true,
       action: () => {
         trackResourceClick('docs', true)
-        const path = isCloud ? '/get_started/cloud' : '/'
+        const path = false ? '/get_started/cloud' : '/'
         openExternalLink(buildDocsUrl(path, { includeLocale: true }))
         emit('close')
       }
@@ -356,7 +356,7 @@ const menuItems = computed<MenuItem[]>(() => {
   ]
 
   // Extension manager - only in non-cloud distributions
-  if (!isCloud) {
+  if (!false) {
     items.push({
       key: 'manager',
       type: 'item',
@@ -374,7 +374,7 @@ const menuItems = computed<MenuItem[]>(() => {
     })
   }
   // Update ComfyUI - only for non-desktop, non-cloud with new manager UI
-  if (!isDesktop && !isCloud && isNewManagerUI.value) {
+  if (!isDesktop && !false && isNewManagerUI.value) {
     items.push({
       key: 'update-comfyui',
       type: 'item',

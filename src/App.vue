@@ -9,19 +9,18 @@
 </template>
 
 <script setup lang="ts">
-import { captureException } from '@sentry/vue'
 import BlockUI from 'primevue/blockui'
 import ProgressSpinner from 'primevue/progressspinner'
 import { computed, onMounted } from 'vue'
 
 import GlobalDialog from '@/components/dialog/GlobalDialog.vue'
 import config from '@/config'
-import { useWorkspaceStore } from '@/stores/workspaceStore'
-import { useConflictDetection } from '@/workbench/extensions/manager/composables/useConflictDetection'
-
-import { electronAPI } from '@/utils/envUtil'
 import { isDesktop } from '@/platform/distribution/types'
 import { app } from '@/scripts/app'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { useConflictDetection } from '@/workbench/extensions/manager/composables/useConflictDetection'
+import { electronAPI } from '@/utils/envUtil'
+import { parsePreloadError } from '@/utils/preloadErrorUtil'
 
 const workspaceStore = useWorkspaceStore()
 app.extensionManager = useWorkspaceStore()
@@ -34,7 +33,6 @@ const showContextMenu = (event: MouseEvent) => {
   switch (true) {
     case target instanceof HTMLTextAreaElement:
     case target instanceof HTMLInputElement && target.type === 'text':
-      // TODO: Context input menu explicitly for text input
       electronAPI()?.showContextMenu({ type: 'text' })
       return
   }
@@ -47,22 +45,17 @@ onMounted(() => {
     document.addEventListener('contextmenu', showContextMenu)
   }
 
-  // Handle preload errors that occur during dynamic imports (e.g., stale chunks after deployment)
-  // See: https://vite.dev/guide/build#load-error-handling
   window.addEventListener('vite:preloadError', (event) => {
     event.preventDefault()
-    // eslint-disable-next-line no-undef
-    if (__DISTRIBUTION__ === 'cloud') {
-      captureException(event.payload, {
-        tags: { error_type: 'vite_preload_error' }
-      })
-    } else {
-      console.error('[vite:preloadError]', event.payload)
-    }
+    const info = parsePreloadError(event.payload)
+    console.error('[vite:preloadError]', {
+      url: info.url,
+      fileType: info.fileType,
+      chunkName: info.chunkName,
+      message: info.message
+    })
   })
 
-  // Initialize conflict detection in background
-  // This runs async and doesn't block UI setup
   void conflictDetection.initializeConflictDetection()
 })
 </script>

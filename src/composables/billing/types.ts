@@ -1,19 +1,11 @@
 import type { ComputedRef, Ref } from 'vue'
 
-import type {
-  Plan,
-  PreviewSubscribeResponse,
-  SubscribeResponse,
-  SubscriptionDuration,
-  SubscriptionTier
-} from '@/platform/workspace/api/workspaceApi'
-
 export type BillingType = 'legacy' | 'workspace'
 
 export interface SubscriptionInfo {
   isActive: boolean
-  tier: SubscriptionTier | null
-  duration: SubscriptionDuration | null
+  tier: string | null
+  duration: string | null
   planSlug: string | null
   renewalDate: string | null
   endDate: string | null
@@ -37,22 +29,12 @@ export interface BillingActions {
     planSlug: string,
     returnUrl?: string,
     cancelUrl?: string
-  ) => Promise<SubscribeResponse | void>
-  previewSubscribe: (
-    planSlug: string
-  ) => Promise<PreviewSubscribeResponse | null>
+  ) => Promise<void>
+  previewSubscribe: (planSlug: string) => Promise<null>
   manageSubscription: () => Promise<void>
   cancelSubscription: () => Promise<void>
   fetchPlans: () => Promise<void>
-  /**
-   * Ensures billing is initialized and subscription is active.
-   * Shows subscription dialog if not subscribed.
-   * Use this in extensions/entry points that require active subscription.
-   */
   requireActiveSubscription: () => Promise<void>
-  /**
-   * Shows the subscription dialog.
-   */
   showSubscriptionDialog: () => void
 }
 
@@ -60,14 +42,10 @@ export interface BillingState {
   isInitialized: Ref<boolean>
   subscription: ComputedRef<SubscriptionInfo | null>
   balance: ComputedRef<BalanceInfo | null>
-  plans: ComputedRef<Plan[]>
+  plans: ComputedRef<unknown[]>
   currentPlanSlug: ComputedRef<string | null>
   isLoading: Ref<boolean>
   error: Ref<string | null>
-  /**
-   * Convenience computed for checking if subscription is active.
-   * Equivalent to `subscription.value?.isActive ?? false`
-   */
   isActiveSubscription: ComputedRef<boolean>
 }
 

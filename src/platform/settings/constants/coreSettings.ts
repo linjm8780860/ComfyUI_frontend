@@ -1,5 +1,5 @@
 import { LinkMarkerShape, LiteGraph } from '@/lib/litegraph/src/litegraph'
-import { isCloud } from '@/platform/distribution/types'
+import { getInitialLocale } from '@/platform/settings/localeStore'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import type { SettingParams } from '@/platform/settings/types'
 import type { ColorPalettes } from '@/schemas/colorPaletteSchema'
@@ -20,7 +20,7 @@ export const CORE_SETTINGS: SettingParams[] = [
     id: 'Comfy.Memory.AllowManualUnload',
     name: 'Allow manual unload of models and execution cache via user command',
     type: 'hidden',
-    defaultValue: isCloud ? false : true,
+    defaultValue: false ? false : true,
     versionAdded: '1.18.0'
   },
   {
@@ -285,8 +285,8 @@ export const CORE_SETTINGS: SettingParams[] = [
   {
     id: 'Comfy.Workflow.ShowMissingModelsWarning',
     name: 'Show missing models warning',
-    type: isCloud ? 'hidden' : 'boolean',
-    defaultValue: isCloud ? false : true,
+    type: false ? 'hidden' : 'boolean',
+    defaultValue: false ? false : true,
     experimental: true
   },
   {
@@ -385,7 +385,7 @@ export const CORE_SETTINGS: SettingParams[] = [
     name: 'Automatically load all model folders',
     tooltip:
       'If true, all folders will load as soon as you open the model library (this may cause delays while it loads). If false, root level model folders will only load once you click on them.',
-    type: isCloud ? 'hidden' : 'boolean',
+    type: false ? 'hidden' : 'boolean',
     defaultValue: false
   },
   {
@@ -415,7 +415,7 @@ export const CORE_SETTINGS: SettingParams[] = [
       { value: 'pt-BR', text: 'Português (BR)' },
       { value: 'fa', text: 'فارسی' }
     ],
-    defaultValue: () => navigator.language.split('-')[0] || 'en'
+    defaultValue: getInitialLocale
   },
   {
     id: 'Comfy.NodeBadge.NodeSourceBadgeMode',
@@ -605,7 +605,7 @@ export const CORE_SETTINGS: SettingParams[] = [
     tooltip:
       'The maximum number of tasks added to the queue at one button click',
     type: 'number',
-    defaultValue: isCloud ? 32 : 100,
+    defaultValue: false ? 32 : 100,
     versionAdded: '1.3.5'
   },
   {
@@ -1156,7 +1156,7 @@ export const CORE_SETTINGS: SettingParams[] = [
     name: 'Use Asset API for model library',
     type: 'hidden',
     tooltip: 'Use new Asset API for model browsing',
-    defaultValue: isCloud ? true : false,
+    defaultValue: false ? true : false,
     experimental: true
   },
   {

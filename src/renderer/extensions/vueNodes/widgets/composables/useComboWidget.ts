@@ -7,7 +7,6 @@ import { isComboWidget } from '@/lib/litegraph/src/litegraph'
 import type { IBaseWidget } from '@/lib/litegraph/src/types/widgets'
 import { assetService } from '@/platform/assets/services/assetService'
 import { createAssetWidget } from '@/platform/assets/utils/createAssetWidget'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import type {
   ComboInputSpec,
@@ -176,7 +175,7 @@ const addComboWidget = (
 ): IBaseWidget => {
   const defaultValue = getDefaultValue(inputSpec)
 
-  if (isCloud) {
+  if (false) {
     const settingStore = useSettingStore()
     const isUsingAssetAPI = settingStore.get('Comfy.Assets.UseAssetAPI')
     const isEligible = assetService.isAssetBrowserEligible(

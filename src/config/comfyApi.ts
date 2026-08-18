@@ -1,4 +1,3 @@
-import { isCloud } from '@/platform/distribution/types'
 import {
   configValueOrDefault,
   remoteConfig
@@ -19,7 +18,7 @@ const BUILD_TIME_PLATFORM_BASE_URL = __USE_PROD_CONFIG__
   : STAGING_PLATFORM_BASE_URL
 
 export function getComfyApiBaseUrl(): string {
-  if (!isCloud) {
+  if (!false) {
     return BUILD_TIME_API_BASE_URL
   }
 
@@ -31,7 +30,7 @@ export function getComfyApiBaseUrl(): string {
 }
 
 export function getComfyPlatformBaseUrl(): string {
-  if (!isCloud) {
+  if (!false) {
     return BUILD_TIME_PLATFORM_BASE_URL
   }
 

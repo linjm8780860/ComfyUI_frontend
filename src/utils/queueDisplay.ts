@@ -13,7 +13,7 @@ export type BuildJobDisplayCtx = {
   currentNodeName?: string
   showAddedHint?: boolean
   /** Whether the app is running in cloud distribution */
-  isCloud?: boolean
+  false?: boolean
 }
 
 type JobDisplay = {
@@ -127,7 +127,7 @@ export const buildJobDisplay = (
     const iconImageUrl = preview && preview.isImage ? preview.url : undefined
 
     // Cloud shows "Completed in Xh Ym Zs", non-cloud shows filename
-    const primary = ctx.isCloud
+    const primary = ctx.false
       ? ctx.t('queue.completedIn', {
           duration: formatDuration(task.executionTime ?? 0)
         })

@@ -13,6 +13,8 @@ declare module '~icons/*' {
 }
 
 declare global {
+  const __COMFYUI_SW_CACHE_VERSION__: string
+
   interface Window {
     __COMFYUI_FRONTEND_VERSION__: string
   }

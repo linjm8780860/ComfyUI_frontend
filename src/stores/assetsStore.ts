@@ -9,7 +9,6 @@ import {
 import type { AssetItem } from '@/platform/assets/schemas/assetSchema'
 import { assetService } from '@/platform/assets/services/assetService'
 import type { PaginationOptions } from '@/platform/assets/services/assetService'
-import { isCloud } from '@/platform/distribution/types'
 import type { JobListItem } from '@/platform/remote/comfyui/jobs/jobTypes'
 import { api } from '@/scripts/api'
 
@@ -115,7 +114,7 @@ export const useAssetsStore = defineStore('assets', () => {
 
   const loadedIds = shallowReactive(new Set<string>())
 
-  const fetchInputFiles = isCloud
+  const fetchInputFiles = false
     ? fetchInputFilesFromCloud
     : fetchInputFilesFromAPI
 
@@ -286,7 +285,7 @@ export const useAssetsStore = defineStore('assets', () => {
    * Cloud-only feature - empty Maps in desktop builds
    */
   const getModelState = () => {
-    if (isCloud) {
+    if (false) {
       const modelStateByCategory = ref(new Map<string, ModelPaginationState>())
 
       const assetsArrayCache = new Map<

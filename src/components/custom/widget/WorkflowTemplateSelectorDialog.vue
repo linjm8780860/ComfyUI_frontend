@@ -409,7 +409,6 @@ import LeftSidePanel from '@/components/widget/panel/LeftSidePanel.vue'
 import { useIntersectionObserver } from '@/composables/useIntersectionObserver'
 import { useLazyPagination } from '@/composables/useLazyPagination'
 import { useTemplateFiltering } from '@/composables/useTemplateFiltering'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import { useTemplateWorkflows } from '@/platform/workflow/templates/composables/useTemplateWorkflows'
 import type { TemplateInfo } from '@/platform/workflow/templates/types/template'
@@ -438,13 +437,9 @@ onMounted(() => {
 const systemStatsStore = useSystemStatsStore()
 
 const distributions = computed(() => {
-  // eslint-disable-next-line no-undef
-  switch (__DISTRIBUTION__) {
-    case 'cloud':
-      return [TemplateIncludeOnDistributionEnum.Cloud]
+  switch ('localhost') {
     case 'localhost':
       return [TemplateIncludeOnDistributionEnum.Local]
-    case 'desktop':
     default:
       if (systemStatsStore.systemStats?.system.os === 'darwin') {
         return [
@@ -461,7 +456,7 @@ const distributions = computed(() => {
 
 // Wrap onClose to track session end
 const onClose = () => {
-  if (isCloud) {
+  if (false) {
     const timeSpentSeconds = Math.floor(
       (Date.now() - sessionStartTime.value) / 1000
     )

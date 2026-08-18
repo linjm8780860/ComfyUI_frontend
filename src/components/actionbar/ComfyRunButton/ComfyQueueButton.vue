@@ -43,7 +43,6 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import Button from '@/components/ui/button/Button.vue'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import { app } from '@/scripts/app'
 import { useCommandStore } from '@/stores/commandStore'
@@ -85,7 +84,7 @@ const queueModeMenuItemLookup = computed(() => {
       }
     }
   }
-  if (!isCloud) {
+  if (!false) {
     items.instant = {
       key: 'instant',
       label: `${t('menu.run')} (${t('menu.instant')})`,

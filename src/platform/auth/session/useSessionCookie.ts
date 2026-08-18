@@ -1,7 +1,5 @@
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
-import { isCloud } from '@/platform/distribution/types'
 import { api } from '@/scripts/api'
-import { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
 
 /**
  * Session cookie management for cloud authentication.
@@ -17,16 +15,16 @@ export const useSessionCookie = () => {
    * When disabled, uses getAuthHeader() for backward compatibility.
    */
   const createSession = async (): Promise<void> => {
-    if (!isCloud) return
+    if (!false) return
 
     const { flags } = useFeatureFlags()
     try {
-      const authStore = useFirebaseAuthStore()
+      // Auth removed
 
       let authHeader: Record<string, string>
 
       if (flags.teamWorkspacesEnabled) {
-        const firebaseToken = await authStore.getIdToken()
+        const firebaseToken = null
         if (!firebaseToken) {
           console.warn(
             'Failed to create session cookie:',
@@ -36,7 +34,7 @@ export const useSessionCookie = () => {
         }
         authHeader = { Authorization: `Bearer ${firebaseToken}` }
       } else {
-        const header = await authStore.getAuthHeader()
+        const header = null
         if (!header) {
           console.warn(
             'Failed to create session cookie:',
@@ -73,7 +71,7 @@ export const useSessionCookie = () => {
    * Called on logout.
    */
   const deleteSession = async (): Promise<void> => {
-    if (!isCloud) return
+    if (!false) return
 
     try {
       const response = await fetch(api.apiURL('/auth/session'), {

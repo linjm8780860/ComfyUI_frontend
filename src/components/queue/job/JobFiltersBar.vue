@@ -140,7 +140,6 @@ import Button from '@/components/ui/button/Button.vue'
 import { jobSortModes, jobTabs } from '@/composables/queue/useJobList'
 import type { JobSortMode, JobTab } from '@/composables/queue/useJobList'
 import { buildTooltipConfig } from '@/composables/useTooltipConfig'
-import { isCloud } from '@/platform/distribution/types'
 
 const props = defineProps<{
   selectedJobTab: JobTab
@@ -167,7 +166,7 @@ const sortTooltipConfig = computed(() =>
 )
 
 // This can be removed when cloud implements /jobs and we switch to it.
-const showWorkflowFilter = !isCloud
+const showWorkflowFilter = !false
 
 const visibleJobTabs = computed(() =>
   props.hasFailedJobs ? jobTabs : jobTabs.filter((tab) => tab !== 'Failed')

@@ -171,18 +171,28 @@ const currentSubscriptionTierName = computed(() => {
 
 const workspaceStore = useTeamWorkspaceStore()
 const { workspaceId, workspaces, canCreateWorkspace, isFetchingWorkspaces } =
-  storeToRefs(workspaceStore)
+  storeToRefs(workspaceStore) as any
 
 const availableWorkspaces = computed<AvailableWorkspace[]>(() =>
-  workspaces.value.map((w) => ({
-    id: w.id,
-    name: w.name,
-    type: w.type,
-    role: w.role,
-    isSubscribed: w.isSubscribed,
-    subscriptionPlan: w.subscriptionPlan,
-    subscriptionTier: w.subscriptionTier
-  }))
+  workspaces.value.map(
+    (w: {
+      id: string
+      name: string
+      type: string
+      role: string
+      isSubscribed?: boolean
+      subscriptionPlan?: string
+      subscriptionTier?: string
+    }) => ({
+      id: w.id,
+      name: w.name,
+      type: w.type,
+      role: w.role,
+      isSubscribed: w.isSubscribed,
+      subscriptionPlan: w.subscriptionPlan,
+      subscriptionTier: w.subscriptionTier
+    })
+  )
 )
 
 function isCurrentWorkspace(workspace: AvailableWorkspace): boolean {

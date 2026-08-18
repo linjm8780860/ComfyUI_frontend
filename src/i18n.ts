@@ -8,6 +8,7 @@ import enCommands from './locales/en/commands.json' with { type: 'json' }
 import en from './locales/en/main.json' with { type: 'json' }
 import enNodes from './locales/en/nodeDefs.json' with { type: 'json' }
 import enSettings from './locales/en/settings.json' with { type: 'json' }
+import { getInitialLocale } from './platform/settings/localeStore'
 
 function buildLocale<
   M extends Record<string, unknown>,
@@ -28,68 +29,40 @@ const localeLoaders: Record<
   string,
   () => Promise<{ default: Record<string, unknown> }>
 > = {
-  ar: () => import('./locales/ar/main.json'),
-  es: () => import('./locales/es/main.json'),
-  fa: () => import('./locales/fa/main.json'),
-  fr: () => import('./locales/fr/main.json'),
   ja: () => import('./locales/ja/main.json'),
   ko: () => import('./locales/ko/main.json'),
-  ru: () => import('./locales/ru/main.json'),
-  tr: () => import('./locales/tr/main.json'),
   zh: () => import('./locales/zh/main.json'),
-  'zh-TW': () => import('./locales/zh-TW/main.json'),
-  'pt-BR': () => import('./locales/pt-BR/main.json')
+  'zh-TW': () => import('./locales/zh-TW/main.json')
 }
 
 const nodeDefsLoaders: Record<
   string,
   () => Promise<{ default: Record<string, unknown> }>
 > = {
-  ar: () => import('./locales/ar/nodeDefs.json'),
-  es: () => import('./locales/es/nodeDefs.json'),
-  fa: () => import('./locales/fa/nodeDefs.json'),
-  fr: () => import('./locales/fr/nodeDefs.json'),
   ja: () => import('./locales/ja/nodeDefs.json'),
   ko: () => import('./locales/ko/nodeDefs.json'),
-  ru: () => import('./locales/ru/nodeDefs.json'),
-  tr: () => import('./locales/tr/nodeDefs.json'),
   zh: () => import('./locales/zh/nodeDefs.json'),
-  'zh-TW': () => import('./locales/zh-TW/nodeDefs.json'),
-  'pt-BR': () => import('./locales/pt-BR/nodeDefs.json')
+  'zh-TW': () => import('./locales/zh-TW/nodeDefs.json')
 }
 
 const commandsLoaders: Record<
   string,
   () => Promise<{ default: Record<string, unknown> }>
 > = {
-  ar: () => import('./locales/ar/commands.json'),
-  es: () => import('./locales/es/commands.json'),
-  fa: () => import('./locales/fa/commands.json'),
-  fr: () => import('./locales/fr/commands.json'),
   ja: () => import('./locales/ja/commands.json'),
   ko: () => import('./locales/ko/commands.json'),
-  ru: () => import('./locales/ru/commands.json'),
-  tr: () => import('./locales/tr/commands.json'),
   zh: () => import('./locales/zh/commands.json'),
-  'zh-TW': () => import('./locales/zh-TW/commands.json'),
-  'pt-BR': () => import('./locales/pt-BR/commands.json')
+  'zh-TW': () => import('./locales/zh-TW/commands.json')
 }
 
 const settingsLoaders: Record<
   string,
   () => Promise<{ default: Record<string, unknown> }>
 > = {
-  ar: () => import('./locales/ar/settings.json'),
-  es: () => import('./locales/es/settings.json'),
-  fa: () => import('./locales/fa/settings.json'),
-  fr: () => import('./locales/fr/settings.json'),
   ja: () => import('./locales/ja/settings.json'),
   ko: () => import('./locales/ko/settings.json'),
-  ru: () => import('./locales/ru/settings.json'),
-  tr: () => import('./locales/tr/settings.json'),
   zh: () => import('./locales/zh/settings.json'),
-  'zh-TW': () => import('./locales/zh-TW/settings.json'),
-  'pt-BR': () => import('./locales/pt-BR/settings.json')
+  'zh-TW': () => import('./locales/zh-TW/settings.json')
 }
 
 // Track which locales have been loaded
@@ -190,7 +163,7 @@ type LocaleMessages = typeof messages.en
 export const i18n = createI18n({
   // Must set `false`, as Vue I18n Legacy API is for Vue 2
   legacy: false,
-  locale: navigator.language.split('-')[0] || 'en',
+  locale: getInitialLocale(),
   fallbackLocale: 'en',
   escapeParameter: true,
   messages,

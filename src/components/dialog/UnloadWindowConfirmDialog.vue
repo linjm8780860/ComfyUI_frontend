@@ -10,30 +10,30 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+// import { onBeforeUnmount, onMounted } from 'vue'
 
-import { useSettingStore } from '@/platform/settings/settingStore'
-import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
+// import { useSettingStore } from '@/platform/settings/settingStore'
+// import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
 
-const settingStore = useSettingStore()
-const workflowStore = useWorkflowStore()
+// const settingStore = useSettingStore()
+// const workflowStore = useWorkflowStore()
 
-const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-  if (
-    settingStore.get('Comfy.Window.UnloadConfirmation') &&
-    workflowStore.modifiedWorkflows.length > 0
-  ) {
-    event.preventDefault()
-    return true
-  }
-  return undefined
-}
+// const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+//   if (
+//     settingStore.get('Comfy.Window.UnloadConfirmation') &&
+//     workflowStore.modifiedWorkflows.length > 0
+//   ) {
+//     event.preventDefault()
+//     return true
+//   }
+//   return undefined
+// }
 
-onMounted(() => {
-  window.addEventListener('beforeunload', handleBeforeUnload)
-})
+// onMounted(() => {
+//   window.addEventListener('beforeunload', handleBeforeUnload)
+// })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload)
-})
+// onBeforeUnmount(() => {
+//   window.removeEventListener('beforeunload', handleBeforeUnload)
+// })
 </script>

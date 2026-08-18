@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 
 import { useExternalLink } from '@/composables/useExternalLink'
-import { isCloud, isDesktop } from '@/platform/distribution/types'
+import { isDesktop } from '@/platform/distribution/types'
 import type { AboutPageBadge } from '@/types/comfy'
 import { electronAPI } from '@/utils/envUtil'
 import { formatCommitHash } from '@/utils/formatUtil'
@@ -28,8 +28,8 @@ export const useAboutPanelStore = defineStore('aboutPanel', () => {
           ? 'v' + electronAPI().getComfyUIVersion()
           : formatCommitHash(coreVersion.value)
       }`,
-      url: isCloud ? staticUrls.comfyOrg : staticUrls.github,
-      icon: isCloud ? 'pi pi-cloud' : 'pi pi-github'
+      url: false ? staticUrls.comfyOrg : staticUrls.github,
+      icon: false ? 'pi pi-cloud' : 'pi pi-github'
     },
     {
       label: `ComfyUI_frontend v${frontendVersion}`,

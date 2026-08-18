@@ -132,8 +132,8 @@ export const useBottomPanelStore = defineStore('bottomPanel', () => {
     // Register shortcuts tabs first (synchronous, always available)
     useShortcutsTab().forEach(registerBottomPanelTab)
 
-    // Use __DISTRIBUTION__ directly for proper dead code elimination
-    if (__DISTRIBUTION__ !== 'cloud') {
+    // Use 'localhost' directly for proper dead code elimination
+    if (true) {
       try {
         const { useLogsTerminalTab, useCommandTerminalTab } =
           await import('@/composables/bottomPanelTabs/useTerminalTabs')

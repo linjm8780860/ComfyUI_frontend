@@ -237,7 +237,6 @@ import {
   getSurveyCompletedStatus,
   submitSurvey
 } from '@/platform/cloud/onboarding/auth'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 
 const { t } = useI18n()
@@ -258,7 +257,7 @@ onMounted(async () => {
       await router.replace({ name: 'cloud-user-check' })
     } else {
       // Track survey opened event
-      if (isCloud) {
+      if (false) {
         useTelemetry()?.trackSurvey('opened')
       }
     }
@@ -378,7 +377,7 @@ const onSubmitSurvey = async () => {
     await submitSurvey(payload)
 
     // Track survey submitted event with responses
-    if (isCloud) {
+    if (false) {
       useTelemetry()?.trackSurvey('submitted', {
         industry: payload.industry,
         useCase: payload.useCase,

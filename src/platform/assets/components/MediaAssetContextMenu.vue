@@ -37,7 +37,6 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import Button from '@/components/ui/button/Button.vue'
-import { isCloud } from '@/platform/distribution/types'
 import { supportsWorkflowMetadata } from '@/platform/workflow/utils/workflowExtractionUtil'
 import { detectNodeTypeFromFilename } from '@/utils/loaderNodeUtil'
 import { cn } from '@/utils/tailwindUtil'
@@ -121,8 +120,7 @@ const showCopyJobId = computed(() => {
 
 const shouldShowDeleteButton = computed(() => {
   const propAllows = showDeleteButton ?? true
-  const typeAllows =
-    assetType === 'output' || (assetType === 'input' && isCloud)
+  const typeAllows = assetType === 'output' || (assetType === 'input' && false)
 
   return propAllows && typeAllows
 })

@@ -1,5 +1,3 @@
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
-import { useFirebaseAuthActions } from '@/composables/auth/useFirebaseAuthActions'
 import { useSelectedLiteGraphItems } from '@/composables/canvas/useSelectedLiteGraphItems'
 import { useSubgraphOperations } from '@/composables/graph/useSubgraphOperations'
 import { useExternalLink } from '@/composables/useExternalLink'
@@ -75,7 +73,6 @@ export function useCoreCommands(): ComfyCommand[] {
   const workflowStore = useWorkflowStore()
   const dialogService = useDialogService()
   const colorPaletteStore = useColorPaletteStore()
-  const firebaseAuthActions = useFirebaseAuthActions()
   const toastStore = useToastStore()
   const canvasStore = useCanvasStore()
   const executionStore = useExecutionStore()
@@ -300,8 +297,10 @@ export function useCoreCommands(): ComfyCommand[] {
       icon: 'pi pi-refresh',
       label: 'Refresh Node Definitions',
       category: 'essentials' as const,
-      function: async () => {
-        await app.refreshComboInNodes()
+      function: async (metadata?: Record<string, unknown>) => {
+        await app.refreshComboInNodes({
+          showToast: metadata?.showToast !== false
+        })
       }
     },
     {
@@ -859,10 +858,10 @@ export function useCoreCommands(): ComfyCommand[] {
       label: 'Contact Support',
       versionAdded: '1.17.8',
       function: () => {
-        const { userEmail, resolvedUserInfo } = useCurrentUser()
+        // Auth removed - no user info available
         const supportUrl = buildSupportUrl({
-          userEmail: userEmail.value,
-          userId: resolvedUserInfo.value?.id
+          userEmail: undefined,
+          userId: undefined
         })
         window.open(supportUrl, '_blank', 'noopener,noreferrer')
       }
@@ -939,24 +938,6 @@ export function useCoreCommands(): ComfyCommand[] {
           initialTab: ManagerTab.Missing,
           showToastOnLegacyError: false
         })
-      }
-    },
-    {
-      id: 'Comfy.User.OpenSignInDialog',
-      icon: 'pi pi-user',
-      label: 'Open Sign In Dialog',
-      versionAdded: '1.17.6',
-      function: async () => {
-        await dialogService.showSignInDialog()
-      }
-    },
-    {
-      id: 'Comfy.User.SignOut',
-      icon: 'pi pi-sign-out',
-      label: 'Sign Out',
-      versionAdded: '1.18.1',
-      function: async () => {
-        await firebaseAuthActions.logout()
       }
     },
     {
@@ -1042,7 +1023,7 @@ export function useCoreCommands(): ComfyCommand[] {
     },
     {
       id: 'Comfy.OpenManagerDialog',
-      icon: 'mdi mdi-puzzle-outline',
+      icon: 'pi pi-wrench',
       label: 'Manager',
       function: async () => {
         await useManagerState().openManager({
@@ -1191,7 +1172,7 @@ export function useCoreCommands(): ComfyCommand[] {
     },
     {
       id: 'Comfy.Manager.ShowLegacyManagerMenu',
-      icon: 'mdi mdi-puzzle',
+      icon: 'pi pi-wrench',
       label: 'Manager Menu (Legacy)',
       versionAdded: '1.16.4',
       function: async () => {
@@ -1203,7 +1184,7 @@ export function useCoreCommands(): ComfyCommand[] {
     },
     {
       id: 'Comfy.Memory.UnloadModels',
-      icon: 'mdi mdi-vacuum-outline',
+      icon: 'pi pi-eraser',
       label: 'Unload Models',
       versionAdded: '1.16.4',
       function: async () => {
@@ -1223,7 +1204,7 @@ export function useCoreCommands(): ComfyCommand[] {
     },
     {
       id: 'Comfy.Memory.UnloadModelsAndExecutionCache',
-      icon: 'mdi mdi-vacuum-outline',
+      icon: 'pi pi-eraser',
       label: 'Unload Models and Execution Cache',
       versionAdded: '1.16.4',
       function: async () => {

@@ -11,7 +11,6 @@ import { extractVueNodeData } from '@/composables/graph/useGraphNodeManager'
 import type { LGraphNode } from '@/lib/litegraph/src/LGraphNode'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
 import SubscribeToRunButton from '@/platform/cloud/subscription/components/SubscribeToRun.vue'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
 import DropZone from '@/renderer/extensions/linearMode/DropZone.vue'
@@ -101,7 +100,7 @@ const partitionedNodes = computed(() => {
 })
 
 const batchCountWidget: SimplifiedWidget<number> = {
-  options: { precision: 0, min: 1, max: isCloud ? 4 : 99 },
+  options: { precision: 0, min: 1, max: false ? 4 : 99 },
   value: 1,
   name: t('linearMode.runCount'),
   type: 'number'

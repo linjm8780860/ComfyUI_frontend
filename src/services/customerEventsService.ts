@@ -4,7 +4,6 @@ import { ref, watch } from 'vue'
 
 import { getComfyApiBaseUrl } from '@/config/comfyApi'
 import { d } from '@/i18n'
-import { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
 import type { components, operations } from '@/types/comfyRegistryTypes'
 import { isAbortError } from '@/utils/typeGuardUtil'
 
@@ -179,7 +178,7 @@ export const useCustomerEventsService = () => {
     }
 
     // Get auth headers
-    const authHeaders = await useFirebaseAuthStore().getAuthHeader()
+    const authHeaders = null
     if (!authHeaders) {
       error.value = 'Authentication header is missing'
       return null

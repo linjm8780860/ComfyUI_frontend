@@ -1,9 +1,9 @@
 /**
  * Distribution types and compile-time constants for managing
- * multi-distribution builds (Desktop, Localhost, Cloud)
+ * multi-distribution builds (Desktop, Localhost)
  */
 
-type Distribution = 'desktop' | 'localhost' | 'cloud'
+type Distribution = 'desktop' | 'localhost'
 
 declare global {
   const __DISTRIBUTION__: Distribution
@@ -14,7 +14,9 @@ declare global {
 const DISTRIBUTION: Distribution = __DISTRIBUTION__
 
 export const isDesktop = DISTRIBUTION === 'desktop'
-export const isCloud = DISTRIBUTION === 'cloud'
+
+/** Cloud distribution is not supported in this build. Tree-shaking will eliminate dead code. */
+export const isCloud = false as const
 
 /**
  * Whether this is a nightly build (from main branch).

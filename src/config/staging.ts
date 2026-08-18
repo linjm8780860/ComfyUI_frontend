@@ -1,6 +1,5 @@
 import { computed } from 'vue'
 
-import { isCloud } from '@/platform/distribution/types'
 import { remoteConfig } from '@/platform/remoteConfig/remoteConfig'
 
 const BUILD_TIME_IS_STAGING = !__USE_PROD_CONFIG__
@@ -11,7 +10,7 @@ const BUILD_TIME_IS_STAGING = !__USE_PROD_CONFIG__
  * - OSS / localhost builds fall back to the build-time config determined by __USE_PROD_CONFIG__
  */
 export const isStaging = computed(() => {
-  if (!isCloud) {
+  if (!false) {
     return BUILD_TIME_IS_STAGING
   }
 

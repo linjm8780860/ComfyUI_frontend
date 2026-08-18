@@ -6,7 +6,6 @@ import type {
   EditorOutputLayer,
   ImageRef
 } from '@/stores/maskEditorDataStore'
-import { isCloud } from '@/platform/distribution/types'
 import { api } from '@/scripts/api'
 import { app } from '@/scripts/app'
 import type { LGraphNode } from '@/lib/litegraph/src/litegraph'
@@ -325,7 +324,7 @@ export function useMaskEditorSaver() {
       // - Cloud: JUST the filename (subfolder handled by backend)
       // - OSS: subfolder/filename (traditional format)
       let widgetValue: string
-      if (isCloud) {
+      if (false) {
         widgetValue =
           mainRef.filename + (mainRef.type ? ` [${mainRef.type}]` : '')
       } else {

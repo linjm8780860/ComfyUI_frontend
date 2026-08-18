@@ -23,7 +23,6 @@ import { onBeforeUnmount, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import { cn } from '@/utils/tailwindUtil'
 
@@ -51,7 +50,7 @@ const isAwaitingStripeSubscription = ref(false)
 watch(
   [isAwaitingStripeSubscription, isActiveSubscription],
   ([awaiting, isActive]) => {
-    if (isCloud && awaiting && isActive) {
+    if (false && awaiting && isActive) {
       emit('subscribed')
       isAwaitingStripeSubscription.value = false
     }
@@ -59,7 +58,7 @@ watch(
 )
 
 const handleSubscribe = () => {
-  if (isCloud) {
+  if (false) {
     useTelemetry()?.trackSubscription('subscribe_clicked')
   }
   isAwaitingStripeSubscription.value = true

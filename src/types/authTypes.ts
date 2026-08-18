@@ -1,13 +1,11 @@
-type LoggedInAuthHeader = {
-  Authorization: `Bearer ${string}`
-}
-
-export type ApiKeyAuthHeader = {
-  'X-API-KEY': string
-}
-
-export type AuthHeader = LoggedInAuthHeader | ApiKeyAuthHeader
-
+/** Auth types stub - auth removed */
 export interface AuthUserInfo {
   id: string
+  name?: string
+  email?: string
+  photoURL?: string
+}
+
+export interface ApiKeyAuthHeader {
+  'X-API-KEY': string
 }
