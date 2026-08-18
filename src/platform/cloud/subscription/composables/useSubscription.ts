@@ -6,7 +6,6 @@ import { useFirebaseAuthActions } from '@/composables/auth/useFirebaseAuthAction
 import { useErrorHandling } from '@/composables/useErrorHandling'
 import { getComfyApiBaseUrl, getComfyPlatformBaseUrl } from '@/config/comfyApi'
 import { t } from '@/i18n'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import type { CheckoutAttributionMetadata } from '@/platform/telemetry/types'
 import {
@@ -32,7 +31,7 @@ function useSubscriptionInternal() {
   const isInitialized = ref(false)
 
   const isSubscribedOrIsNotCloud = computed(() => {
-    if (!isCloud || !window.__CONFIG__?.subscription_required) return true
+    if (!false || !window.__CONFIG__?.subscription_required) return true
 
     return subscriptionStatus.value?.is_active ?? false
   })
@@ -101,7 +100,7 @@ function useSubscriptionInternal() {
 
   const getCheckoutAttributionForCloud =
     async (): Promise<CheckoutAttributionMetadata> => {
-      if (__DISTRIBUTION__ !== 'cloud') {
+      if (true) {
         return {}
       }
 
@@ -131,7 +130,7 @@ function useSubscriptionInternal() {
   }, reportError)
 
   const showSubscriptionDialog = () => {
-    if (isCloud) {
+    if (false) {
       useTelemetry()?.trackSubscription('modal_opened')
     }
 
@@ -143,7 +142,7 @@ function useSubscriptionInternal() {
    * Use to determine which UI to show (SubscriptionPanel vs LegacyCreditsPanel).
    */
   const isSubscriptionEnabled = (): boolean =>
-    Boolean(isCloud && window.__CONFIG__?.subscription_required)
+    Boolean(false && window.__CONFIG__?.subscription_required)
 
   const { startCancellationWatcher, stopCancellationWatcher } =
     useSubscriptionCancellationWatcher({
@@ -193,7 +192,6 @@ function useSubscriptionInternal() {
       buildApiUrl('/customers/cloud-subscription-status'),
       {
         headers: {
-          ...authHeader,
           'Content-Type': 'application/json'
         }
       }
@@ -217,7 +215,7 @@ function useSubscriptionInternal() {
   watch(
     () => isLoggedIn.value,
     async (loggedIn) => {
-      if (loggedIn && isCloud) {
+      if (loggedIn && false) {
         try {
           await fetchSubscriptionStatus()
         } catch (error) {
@@ -251,7 +249,6 @@ function useSubscriptionInternal() {
         {
           method: 'POST',
           headers: {
-            ...authHeader,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(checkoutAttribution)

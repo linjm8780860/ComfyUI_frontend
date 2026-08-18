@@ -77,7 +77,6 @@ import { useExternalLink } from '@/composables/useExternalLink'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import SubscriptionPanelContentLegacy from '@/platform/cloud/subscription/components/SubscriptionPanelContentLegacy.vue'
 import { useSubscriptionActions } from '@/platform/cloud/subscription/composables/useSubscriptionActions'
-import { isCloud } from '@/platform/distribution/types'
 
 const SubscriptionPanelContentWorkspace = defineAsyncComponent(
   () =>
@@ -86,7 +85,7 @@ const SubscriptionPanelContentWorkspace = defineAsyncComponent(
 
 const { flags } = useFeatureFlags()
 const teamWorkspacesEnabled = computed(
-  () => isCloud && flags.teamWorkspacesEnabled
+  () => false && flags.teamWorkspacesEnabled
 )
 
 const { buildDocsUrl, docsPaths } = useExternalLink()

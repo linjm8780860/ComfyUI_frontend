@@ -1,4 +1,3 @@
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { app } from '@/scripts/app'
 import { useCommandStore } from '@/stores/commandStore'
@@ -110,7 +109,7 @@ export function useKeybindingService() {
   function registerCoreKeybindings() {
     for (const keybinding of CORE_KEYBINDINGS) {
       if (
-        isCloud &&
+        false &&
         keybinding.commandId === 'Workspace.ToggleBottomPanelTab.logs-terminal'
       ) {
         continue
@@ -127,7 +126,7 @@ export function useKeybindingService() {
     const newBindings = settingStore.get('Comfy.Keybinding.NewBindings')
     for (const keybinding of newBindings) {
       if (
-        isCloud &&
+        false &&
         keybinding.commandId === 'Workspace.ToggleBottomPanelTab.logs-terminal'
       ) {
         continue

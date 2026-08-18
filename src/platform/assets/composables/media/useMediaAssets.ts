@@ -1,5 +1,3 @@
-import { isCloud } from '@/platform/distribution/types'
-
 import type { IAssetsProvider } from './IAssetsProvider'
 import { useAssetsApi } from './useAssetsApi'
 import { useInternalFilesApi } from './useInternalFilesApi'
@@ -11,5 +9,5 @@ import { useInternalFilesApi } from './useInternalFilesApi'
  * @returns IAssetsProvider implementation
  */
 export function useMediaAssets(directory: 'input' | 'output'): IAssetsProvider {
-  return isCloud ? useAssetsApi(directory) : useInternalFilesApi(directory)
+  return false ? useAssetsApi(directory) : useInternalFilesApi(directory)
 }

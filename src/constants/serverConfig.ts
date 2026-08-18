@@ -34,7 +34,7 @@ export const SERVER_CONFIG_ITEMS: ServerConfig<any>[] = [
     category: ['Network'],
     type: 'number',
     // The default launch port for desktop app is 8000 instead of 8188.
-    defaultValue: 8000
+    defaultValue: 8188
   },
   {
     id: 'tls-keyfile',

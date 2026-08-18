@@ -1,6 +1,5 @@
 import { watch } from 'vue'
 
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
 import { useExtensionService } from '@/services/extensionService'
 
@@ -11,7 +10,7 @@ useExtensionService().registerExtension({
   name: 'Comfy.Cloud.Subscription',
 
   setup: async () => {
-    const { isLoggedIn } = useCurrentUser()
+    const isLoggedIn = { value: false }
     const { requireActiveSubscription } = useBillingContext()
 
     const checkSubscriptionStatus = () => {

@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import ConfirmationDialogContent from '@/components/dialog/content/ConfirmationDialogContent.vue'
 import { downloadFile } from '@/base/common/downloadUtil'
 import { useCopyToClipboard } from '@/composables/useCopyToClipboard'
-import { isCloud } from '@/platform/distribution/types'
 import { useWorkflowActionsService } from '@/platform/workflow/core/services/workflowActionsService'
 import { extractWorkflowFromAsset } from '@/platform/workflow/utils/workflowExtractionUtil'
 import { api } from '@/scripts/api'
@@ -52,7 +51,7 @@ export function useMediaAssetActions() {
       await api.deleteItem('history', promptId)
     } else {
       // Input assets can only be deleted in cloud environment
-      if (!isCloud) {
+      if (!false) {
         throw new Error(t('mediaAsset.deletingImportedFilesCloudOnly'))
       }
       await assetService.deleteAsset(asset.id)
@@ -196,10 +195,7 @@ export function useMediaAssetActions() {
 
     // In Cloud mode, use asset_hash (the actual stored filename)
     // In OSS mode, use the original name
-    const filename =
-      isCloud && targetAsset.asset_hash
-        ? targetAsset.asset_hash
-        : targetAsset.name
+    const filename: string = targetAsset?.name ?? ''
 
     // Create annotated path for the asset
     const annotated = createAnnotatedPath(
@@ -338,8 +334,7 @@ export function useMediaAssetActions() {
 
       // In Cloud mode, use asset_hash (the actual stored filename)
       // In OSS mode, use the original name
-      const filename =
-        isCloud && asset.asset_hash ? asset.asset_hash : asset.name
+      const filename: string = asset.name ?? ''
 
       const annotated = createAnnotatedPath(
         {

@@ -1,6 +1,5 @@
 import { watchDebounced } from '@vueuse/core'
 
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
 import { refreshRemoteConfig } from '@/platform/remoteConfig/refreshRemoteConfig'
 import { useExtensionService } from '@/services/extensionService'
@@ -13,7 +12,7 @@ useExtensionService().registerExtension({
   name: 'Comfy.Cloud.RemoteConfig',
 
   setup: async () => {
-    const { isLoggedIn } = useCurrentUser()
+    const isLoggedIn = { value: false }
     const { isActiveSubscription } = useBillingContext()
 
     // Refresh config when auth or subscription status changes

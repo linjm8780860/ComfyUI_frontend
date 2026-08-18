@@ -2,7 +2,6 @@ import { storeToRefs } from 'pinia'
 
 import { getComfyApiBaseUrl } from '@/config/comfyApi'
 import { t } from '@/i18n'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import {
   FirebaseAuthStoreError,
@@ -21,7 +20,7 @@ const getCheckoutTier = (
 
 const getCheckoutAttributionForCloud =
   async (): Promise<CheckoutAttributionMetadata> => {
-    if (__DISTRIBUTION__ !== 'cloud') {
+    if (true) {
       return {}
     }
 
@@ -40,7 +39,7 @@ const getCheckoutAttributionForCloud =
  * - Opening the checkout URL in a new tab when available
  *
  * Callers are responsible for:
- * - Guarding on cloud-only behavior (isCloud)
+ * - Guarding on cloud-only behavior (false)
  * - Managing loading state
  * - Wrapping with error handling (e.g. useErrorHandling)
  */
@@ -49,7 +48,7 @@ export async function performSubscriptionCheckout(
   currentBillingCycle: BillingCycle,
   openInNewTab: boolean = true
 ): Promise<void> {
-  if (!isCloud) return
+  if (!false) return
 
   const firebaseAuthStore = useFirebaseAuthStore()
   const { userId } = storeToRefs(firebaseAuthStore)
@@ -76,7 +75,7 @@ export async function performSubscriptionCheckout(
     `${getComfyApiBaseUrl()}/customers/cloud-subscription-checkout/${checkoutTier}`,
     {
       method: 'POST',
-      headers: { ...authHeader, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(checkoutPayload)
     }
   )

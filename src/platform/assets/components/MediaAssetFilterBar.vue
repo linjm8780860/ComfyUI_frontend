@@ -9,7 +9,7 @@
     />
     <div class="flex gap-1.5 items-center">
       <MediaAssetFilterButton
-        v-if="isCloud"
+        v-if="false"
         v-tooltip.top="{ value: $t('assetBrowser.filterBy') }"
         size="md"
       >
@@ -22,7 +22,7 @@
         </template>
       </MediaAssetFilterButton>
       <AssetSortButton
-        v-if="isCloud"
+        v-if="false"
         v-tooltip.top="{ value: $t('assetBrowser.sortBy') }"
         size="md"
       >
@@ -46,7 +46,6 @@
 import { computed } from 'vue'
 
 import SearchBox from '@/components/common/SearchBox.vue'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 
 import MediaAssetFilterButton from './MediaAssetFilterButton.vue'

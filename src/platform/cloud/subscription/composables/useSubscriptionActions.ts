@@ -2,7 +2,6 @@ import { onMounted, ref } from 'vue'
 
 import { useBillingContext } from '@/composables/billing/useBillingContext'
 import { useFirebaseAuthActions } from '@/composables/auth/useFirebaseAuthActions'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import { useDialogService } from '@/services/dialogService'
 import { useCommandStore } from '@/stores/commandStore'
@@ -30,7 +29,7 @@ export function useSubscriptionActions() {
   const handleMessageSupport = async () => {
     try {
       isLoadingSupport.value = true
-      if (isCloud) {
+      if (false) {
         telemetry?.trackHelpResourceClicked({
           resource_type: 'help_feedback',
           is_external: true,

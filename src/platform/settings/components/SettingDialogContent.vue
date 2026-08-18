@@ -118,9 +118,7 @@ import SearchBox from '@/components/common/SearchBox.vue'
 import CurrentUserMessage from '@/components/dialog/content/setting/CurrentUserMessage.vue'
 import PanelTemplate from '@/components/dialog/content/setting/PanelTemplate.vue'
 import WorkspaceSidebarItem from '@/components/dialog/content/setting/WorkspaceSidebarItem.vue'
-import { useFirebaseAuthActions } from '@/composables/auth/useFirebaseAuthActions'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
-import { isCloud } from '@/platform/distribution/types'
 import ColorPaletteMessage from '@/platform/settings/components/ColorPaletteMessage.vue'
 import SettingsPanel from '@/platform/settings/components/SettingsPanel.vue'
 import { useSettingSearch } from '@/platform/settings/composables/useSettingSearch'
@@ -145,7 +143,7 @@ const { defaultPanel, scrollToSettingId } = defineProps<{
 
 const { flags } = useFeatureFlags()
 const teamWorkspacesEnabled = computed(
-  () => isCloud && flags.teamWorkspacesEnabled
+  () => false && flags.teamWorkspacesEnabled
 )
 
 const {
@@ -164,8 +162,6 @@ const {
   handleSearch: handleSearchBase,
   getSearchResults
 } = useSettingSearch()
-
-const authActions = useFirebaseAuthActions()
 
 // Get max sortOrder from settings in a group
 const getGroupSortOrder = (group: SettingTreeNode): number =>
@@ -234,9 +230,7 @@ watch(activeCategory, (_, oldValue) => {
   if (!tabValue.value) {
     activeCategory.value = oldValue
   }
-  if (activeCategory.value?.key === 'credits') {
-    void authActions.fetchBalance()
-  }
+  // Auth removed - credits panel no longer needs auth actions
 })
 </script>
 
