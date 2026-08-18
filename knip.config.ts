@@ -32,14 +32,42 @@ const config: KnipConfig = {
     '@primeuix/forms',
     '@primeuix/styled',
     '@primeuix/utils',
-    '@primevue/icons'
+    '@primevue/icons',
+    '@sentry/vite-plugin',
+    'firebase',
+    'mixpanel-browser',
+    'vuefire'
   ],
   ignore: [
     // Auto generated manager types
     'src/workbench/extensions/manager/types/generatedManagerTypes.ts',
     'packages/registry-types/src/comfyRegistryTypes.ts',
     // Used by a custom node (that should move off of this)
-    'src/scripts/ui/components/splitButton.ts'
+    'src/scripts/ui/components/splitButton.ts',
+    // BizyAir keeps these modules for compatibility while their UI entry
+    // points are disabled.
+    'src/components/dialog/content/ApiNodesSignInContent.vue',
+    'src/components/dialog/content/SignInContent.vue',
+    'src/components/dialog/content/signin/{PasswordFields,SignUpForm}.vue',
+    'src/components/helpcenter/**',
+    'src/components/icons/{ComfyLogo,PuzzleIcon}.vue',
+    'src/components/sidebar/{ComfyMenuButton,SidebarBottomPanelToggleButton,SidebarHelpCenterIcon,SidebarLogoutIcon,SidebarSettingsButton,SidebarShortcutsToggleButton}.vue',
+    'src/components/topbar/{CurrentUserPopoverWorkspace,WorkspaceSwitcherPopover}.vue',
+    'src/composables/billing/{types,useLegacyBilling,useWorkspaceBilling}.ts',
+    'src/config/firebase.ts',
+    'src/extensions/core/{cloudBadges,cloudFeedbackTopbarButton,cloudRemoteConfig,cloudSessionCookie,cloudSubscription,nightlyBadges}.ts',
+    'src/platform/auth/**',
+    'src/platform/cloud/**',
+    'src/platform/settings/localeStore.ts',
+    'src/platform/support/config.ts',
+    'src/platform/telemetry/**',
+    'src/platform/workflow/templates/types/template.ts',
+    'src/platform/workspace/api/workspaceApi.ts',
+    'src/platform/workspace/stores/teamWorkspaceStore.ts',
+    'src/schemas/signInSchema.ts',
+    'src/stores/{apiKeyAuthStore,firebaseAuthStore,workspaceAuthStore}.ts',
+    'src/types/authTypes.ts',
+    'src/utils/graphTraversalUtil.ts'
   ],
   compilers: {
     // https://github.com/webpro-nl/knip/issues/1008#issuecomment-3207756199
