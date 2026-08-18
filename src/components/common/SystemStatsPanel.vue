@@ -54,7 +54,6 @@ import { computed } from 'vue'
 import DeviceInfo from '@/components/common/DeviceInfo.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { useCopyToClipboard } from '@/composables/useCopyToClipboard'
-import { isCloud } from '@/platform/distribution/types'
 import type { SystemStats } from '@/schemas/apiSchema'
 import { formatCommitHash, formatSize } from '@/utils/formatUtil'
 import { cn } from '@comfyorg/tailwind-utils'
@@ -129,7 +128,7 @@ const cloudColumns: ColumnDef[] = [
   }
 ]
 
-const systemColumns = computed(() => (isCloud ? cloudColumns : localColumns))
+const systemColumns = computed(() => (false ? cloudColumns : localColumns))
 
 function isOutdated(column: ColumnDef): boolean {
   if (column.field !== 'installed_templates_version') return false

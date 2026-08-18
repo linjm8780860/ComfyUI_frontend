@@ -5,12 +5,7 @@
     <div class="min-w-0 flex-1 px-2 text-[14px] font-normal text-text-primary">
       <span>{{ headerTitle }}</span>
     </div>
-    <div
-      class="inline-flex h-6 items-center gap-2 text-[12px] leading-none text-text-primary"
-    >
-      <span :class="{ 'opacity-50': queuedCount === 0 }">{{
-        t('sideToolbar.queueProgressOverlay.clearQueueTooltip')
-      }}</span>
+    <div v-if="!false" class="flex items-center gap-1">
       <Button
         v-tooltip.top="clearAllJobsTooltip"
         variant="destructive"
