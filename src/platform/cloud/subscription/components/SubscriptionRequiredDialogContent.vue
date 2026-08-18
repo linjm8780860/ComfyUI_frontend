@@ -158,7 +158,6 @@ import PricingTable from '@/platform/cloud/subscription/components/PricingTable.
 import SubscribeButton from '@/platform/cloud/subscription/components/SubscribeButton.vue'
 import SubscriptionBenefits from '@/platform/cloud/subscription/components/SubscriptionBenefits.vue'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import { useCommandStore } from '@/stores/commandStore'
 import type { PaymentIntentSource } from '@/platform/telemetry/types'
@@ -176,7 +175,7 @@ const emit = defineEmits<{
 const { canAccessSubscriptionFeatures } = useBillingContext()
 
 const isSubscriptionEnabled = (): boolean =>
-  Boolean(isCloud && window.__CONFIG__?.subscription_required)
+  Boolean(false && window.__CONFIG__?.subscription_required)
 
 // Legacy price for non-tier flow with locale-aware formatting
 const formattedMonthlyPrice = new Intl.NumberFormat(

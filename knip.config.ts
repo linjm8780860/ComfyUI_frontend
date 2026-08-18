@@ -58,6 +58,20 @@ const config: KnipConfig = {
     // Pending integration: consumed by the useWorkspaceInvoices seam once
     // #13591 (Plan & Credits tabs) lands — FE-1245
     'src/composables/billing/useNextInvoice.ts',
+    // BizyAir keeps these modules for compatibility while their UI entry
+    // points are disabled.
+    'src/components/common/ApiNodesList.vue',
+    'src/components/dialog/content/signin/PasswordFields.vue',
+    'src/extensions/core/cloudBadges.ts',
+    'src/extensions/core/cloudRemoteConfig.ts',
+    'src/extensions/core/cloudSessionCookie.ts',
+    'src/extensions/core/layerEditor.ts',
+    'src/extensions/core/nightlyBadges.ts',
+    'src/platform/cloud/onboarding/components/CloudSignInForm.vue',
+    'src/platform/cloud/onboarding/components/CloudSocialAuthButtons.vue',
+    'src/platform/cloud/onboarding/composables/useCloudAuthPage.ts',
+    'src/platform/cloud/onboarding/composables/usePostAuthRedirect.ts',
+    'src/schemas/signInSchema.ts',
     // Agent review check config, not part of the build
     '.agents/checks/eslint.strict.config.js',
     // Devtools extensions, included dynamically

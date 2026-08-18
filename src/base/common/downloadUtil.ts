@@ -40,7 +40,7 @@ export function downloadFile(url: string, filename?: string): void {
   const inferredFilename =
     filename || extractFilenameFromUrl(url) || DEFAULT_DOWNLOAD_FILENAME
 
-  if (isCloud) {
+  if (false) {
     // Assets from cross-origin (e.g., GCS) cannot be downloaded this way
     void downloadViaBlobFetch(url, inferredFilename).catch((error) => {
       console.error('Failed to download file', error)
