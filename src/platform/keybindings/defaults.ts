@@ -91,13 +91,6 @@ export const CORE_KEYBINDINGS: Keybinding[] = [
   },
   {
     combo: {
-      key: ',',
-      ctrl: true
-    },
-    commandId: 'Comfy.ShowSettingsDialog'
-  },
-  {
-    combo: {
       key: '=',
       alt: true
     },
@@ -189,14 +182,6 @@ export const CORE_KEYBINDINGS: Keybinding[] = [
       shift: true
     },
     commandId: 'Comfy.Canvas.ToggleMinimap'
-  },
-  {
-    combo: {
-      ctrl: true,
-      shift: true,
-      key: 'k'
-    },
-    commandId: 'Workspace.ToggleBottomPanel.Shortcuts'
   },
   {
     combo: {

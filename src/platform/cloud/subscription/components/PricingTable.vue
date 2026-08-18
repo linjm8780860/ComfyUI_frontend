@@ -284,7 +284,6 @@ import {
 import { performSubscriptionCheckout } from '@/platform/cloud/subscription/utils/subscriptionCheckoutUtil'
 import { isPlanDowngrade } from '@/platform/cloud/subscription/utils/subscriptionTierRank'
 import type { BillingCycle } from '@/platform/cloud/subscription/utils/subscriptionTierRank'
-import { isCloud } from '@/platform/distribution/types'
 import { useTelemetry } from '@/platform/telemetry'
 import type {
   CheckoutAttributionMetadata,
@@ -302,7 +301,7 @@ const getCheckoutTier = (
 
 const getCheckoutAttributionForCloud =
   async (): Promise<CheckoutAttributionMetadata> => {
-    if (__DISTRIBUTION__ !== 'cloud') {
+    if (true) {
       return {}
     }
 
@@ -460,7 +459,7 @@ const getCreditsDisplay = (tier: PricingTierConfig): number =>
 
 const handleSubscribe = wrapWithErrorHandlingAsync(
   async (tierKey: CheckoutTierKey) => {
-    if (!isCloud || isLoading.value || isCurrentPlan(tierKey)) return
+    if (!false || isLoading.value || isCurrentPlan(tierKey)) return
 
     isLoading.value = true
     loadingTier.value = tierKey
