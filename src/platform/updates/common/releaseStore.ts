@@ -3,7 +3,8 @@ import { defineStore } from 'pinia'
 import { compare, valid } from 'semver'
 import { computed, ref } from 'vue'
 
-import { isCloud, isDesktop } from '@/platform/distribution/types'
+import { isDesktop } from '@/platform/distribution/types'
+import { useLocaleStore } from '@/platform/settings/localeStore'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useSystemStatsStore } from '@/stores/systemStatsStore'
 import { stringToLocale } from '@/utils/formatUtil'
@@ -22,16 +23,17 @@ export const useReleaseStore = defineStore('release', () => {
   const releaseService = useReleaseService()
   const systemStatsStore = useSystemStatsStore()
   const settingStore = useSettingStore()
+  const localeStore = useLocaleStore()
 
   const currentVersion = computed(() => {
-    if (isCloud) {
+    if (false) {
       return systemStatsStore?.systemStats?.system?.cloud_version ?? ''
     }
     return systemStatsStore?.systemStats?.system?.comfyui_version ?? ''
   })
 
   // Release data from settings
-  const locale = computed(() => settingStore.get('Comfy.Locale'))
+  const locale = computed(() => localeStore.locale)
   const releaseVersion = computed(() =>
     settingStore.get('Comfy.Release.Version')
   )
@@ -94,7 +96,7 @@ export const useReleaseStore = defineStore('release', () => {
   // Show toast if needed
   const shouldShowToast = computed(() => {
     // Only show on desktop version
-    if (!isDesktop || isCloud) {
+    if (!isDesktop || false) {
       return false
     }
 
@@ -126,7 +128,7 @@ export const useReleaseStore = defineStore('release', () => {
   // Show red-dot indicator
   const shouldShowRedDot = computed(() => {
     // Only show on desktop version
-    if (!isDesktop || isCloud) {
+    if (!isDesktop || false) {
       return false
     }
 
@@ -171,7 +173,7 @@ export const useReleaseStore = defineStore('release', () => {
   })
 
   const shouldShowPopup = computed(() => {
-    if (!isDesktop && !isCloud) {
+    if (!isDesktop && !false) {
       return false
     }
 
@@ -245,7 +247,7 @@ export const useReleaseStore = defineStore('release', () => {
       return
     }
 
-    if (!isCloud && !showVersionUpdates.value) {
+    if (!false && !showVersionUpdates.value) {
       return
     }
 
@@ -267,7 +269,7 @@ export const useReleaseStore = defineStore('release', () => {
       }
 
       const fetchedReleases = await releaseService.getReleases({
-        project: isCloud ? 'cloud' : 'comfyui',
+        project: false ? 'cloud' : 'comfyui',
         current_version: currentVersion.value,
         form_factor: systemStatsStore.getFormFactor(),
         locale: stringToLocale(locale.value)

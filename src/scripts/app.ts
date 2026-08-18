@@ -8,7 +8,7 @@ import { useCanvasPositionConversion } from '@/composables/element/useCanvasPosi
 import { layoutStore } from '@/renderer/core/layout/store/layoutStore'
 import { flushScheduledSlotLayoutSync } from '@/renderer/extensions/vueNodes/composables/useSlotElementTracking'
 import { registerProxyWidgets } from '@/core/graph/subgraph/proxyWidget'
-import { st, t } from '@/i18n'
+import { t } from '@/i18n'
 import type { IContextMenuValue } from '@/lib/litegraph/src/interfaces'
 import {
   LGraph,
@@ -18,7 +18,6 @@ import {
 } from '@/lib/litegraph/src/litegraph'
 import type { Vector2 } from '@/lib/litegraph/src/litegraph'
 import type { IBaseWidget } from '@/lib/litegraph/src/types/widgets'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useTelemetry } from '@/platform/telemetry'
 import type { WorkflowOpenSource } from '@/platform/telemetry/types'
@@ -50,16 +49,13 @@ import {
   DOMWidgetImpl
 } from '@/scripts/domWidget'
 import { useDialogService } from '@/services/dialogService'
-import { useBillingContext } from '@/composables/billing/useBillingContext'
 import { useExtensionService } from '@/services/extensionService'
 import { useLitegraphService } from '@/services/litegraphService'
 import { useSubgraphService } from '@/services/subgraphService'
-import { useApiKeyAuthStore } from '@/stores/apiKeyAuthStore'
 import { useCommandStore } from '@/stores/commandStore'
 import { useDomWidgetStore } from '@/stores/domWidgetStore'
 import { useExecutionStore } from '@/stores/executionStore'
 import { useExtensionStore } from '@/stores/extensionStore'
-import { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
 import { useNodeOutputStore } from '@/stores/imagePreviewStore'
 import { useJobPreviewStore } from '@/stores/jobPreviewStore'
 import { KeyComboImpl } from '@/platform/keybindings/keyCombo'
@@ -67,7 +63,6 @@ import { useKeybindingStore } from '@/platform/keybindings/keybindingStore'
 import { useModelStore } from '@/stores/modelStore'
 import { SYSTEM_NODE_DEFS, useNodeDefStore } from '@/stores/nodeDefStore'
 import { useNodeReplacementStore } from '@/platform/nodeReplacement/nodeReplacementStore'
-import { useSubgraphStore } from '@/stores/subgraphStore'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import type { ComfyExtension, MissingNodeType } from '@/types/comfy'
@@ -211,6 +206,16 @@ export class ComfyApp {
     canvasPosToClientPos: (pos: Vector2) => Vector2
   }
 
+  // --- Lazy Node Registration (perf optimization) ---
+  /** All node defs fetched from backend, stored but not yet registered with LiteGraph. */
+  private _allNodeDefs: Map<string, ComfyNodeDefV1> = new Map()
+  /** Node IDs that have been registered with LiteGraph. */
+  private _registeredNodeIds: Set<string> = new Set()
+  /** Prefetched /object_info promise, started in parallel with loadExtensions. */
+  _objectInfoPromise: Promise<Response | null> | null = null
+  /** Whether background batch registration has completed. */
+  private _backgroundRegistrationDone = false
+
   /**
    * The node errors from the previous execution.
    * @deprecated Use useExecutionStore().lastNodeErrors instead
@@ -344,7 +349,7 @@ export class ComfyApp {
   }
 
   getRandParam() {
-    if (isCloud) return ''
+    if (false) return ''
     return '&rand=' + Math.random()
   }
 
@@ -680,27 +685,7 @@ export class ComfyApp {
     })
 
     api.addEventListener('execution_error', ({ detail }) => {
-      // Check if this is an auth-related error or credits-related error
-      if (
-        detail.exception_message?.includes(
-          'Unauthorized: Please login first to use this node.'
-        )
-      ) {
-        useDialogService().showApiNodesSignInDialog([detail.node_type])
-      } else if (
-        detail.exception_message?.includes(
-          'Payment Required: Please add credits to your account to use this node.'
-        )
-      ) {
-        const { isActiveSubscription } = useBillingContext()
-        if (isActiveSubscription.value) {
-          useDialogService().showTopUpCreditsDialog({
-            isInsufficientCredits: true
-          })
-        }
-      } else {
-        useDialogService().showExecutionErrorDialog(detail)
-      }
+      useDialogService().showExecutionErrorDialog(detail)
       this.canvas.draw(true, true)
     })
 
@@ -787,10 +772,44 @@ export class ComfyApp {
 
     this.canvasElRef.value = canvasEl
 
-    await useWorkspaceStore().workflow.syncWorkflows()
-    //Doesn't need to block. Blueprints will load async
-    void useSubgraphStore().fetchSubgraphs()
-    await useExtensionService().loadExtensions()
+    // PerfOpt: Prefetch /object_info ASAP - start before syncWorkflows and loadExtensions
+    // Add 30s timeout - if prefetch hangs, getNodeDefs() will fallback to a fresh request
+    this._objectInfoPromise = Promise.race([
+      api.fetchApi('/object_info'),
+      new Promise<Response>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('[PerfOpt] /object_info prefetch timeout')),
+          30000
+        )
+      )
+    ]).catch((err) => {
+      console.warn(
+        '[PerfOpt] /object_info prefetch failed, will retry on demand:',
+        err
+      )
+      return null
+    }) as Promise<Response | null>
+    console.log('[PerfOpt] /object_info prefetch started (ASAP)')
+
+    // PerfOpt: Skip syncWorkflows and fetchSubgraphs - /api/userdata returns 404 on this deployment
+    // These calls fetch workflow files from ComfyUI's built-in user data storage, which is not used.
+    // Skipping saves 1-2 round trips (especially when the 404 response is slow).
+    console.log('[PerfOpt] Skipping syncWorkflows (userdata API unavailable)')
+
+    console.log('[PerfOpt] Starting loadExtensions')
+
+    // PerfOpt: loadExtensions with timeout - some third-party extensions may hang
+    await Promise.race([
+      useExtensionService().loadExtensions(),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('[PerfOpt] loadExtensions timeout after 60s')),
+          60000
+        )
+      )
+    ]).catch((err) => {
+      console.error('[PerfOpt] loadExtensions failed or timed out:', err)
+    })
 
     this.addProcessKeyHandler()
     this.addConfigureHandler()
@@ -886,17 +905,43 @@ export class ComfyApp {
       }
     })
 
-    await useExtensionService().invokeExtensionsAsync('init')
+    // PerfOpt: Extension init with timeout
+    await Promise.race([
+      useExtensionService().invokeExtensionsAsync('init'),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('[PerfOpt] init timeout after 30s')),
+          30000
+        )
+      )
+    ]).catch((err) => {
+      console.error('[PerfOpt] Extension init failed or timed out:', err)
+    })
+
     await this.registerNodes()
 
     this.addDropHandler()
 
-    await useExtensionService().invokeExtensionsAsync('setup')
+    // PerfOpt: Extension setup with timeout
+    await Promise.race([
+      useExtensionService().invokeExtensionsAsync('setup'),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('[PerfOpt] setup timeout after 30s')),
+          30000
+        )
+      )
+    ]).catch((err) => {
+      console.error('[PerfOpt] Extension setup failed or timed out:', err)
+    })
 
     this.positionConversion = useCanvasPositionConversion(
       this.canvasContainer,
       this.canvas
     )
+
+    // PerfOpt: Register remaining nodes in background batches (non-blocking)
+    this.registerDeferredNodesInBackground()
   }
 
   private resizeCanvas(canvas: HTMLCanvasElement) {
@@ -955,51 +1000,185 @@ export class ComfyApp {
     nodeDefStore.updateNodeDefs(nodeDefArray)
   }
 
-  async getNodeDefs(): Promise<Record<string, ComfyNodeDefV1>> {
-    const translateNodeDef = (def: ComfyNodeDefV1): ComfyNodeDefV1 => ({
-      ...def,
-      display_name: st(
-        `nodeDefs.${def.name}.display_name`,
-        def.display_name ?? def.name
-      ),
-      description: def.description
-        ? st(`nodeDefs.${def.name}.description`, def.description)
-        : '',
-      category: def.category
-        .split('/')
-        .map((category: string) => st(`nodeCategories.${category}`, category))
-        .join('/')
-    })
+  // PerfOpt: Cache for getNodeDefs - avoid duplicate /object_info requests
+  _nodeDefsCache: Record<string, ComfyNodeDefV1> | null = null
+  _nodeDefsCacheTime: number = 0
+  // Cache TTL: 60s. Within this window, return cached defs instead of re-fetching.
+  static NODE_DEFS_CACHE_TTL = 60000
 
-    return _.mapValues(await api.getNodeDefs(), (def) => translateNodeDef(def))
+  async getNodeDefs(
+    forceRefresh = false
+  ): Promise<Record<string, ComfyNodeDefV1>> {
+    // Return cached defs if fresh enough (unless force refresh)
+    const now = Date.now()
+    if (
+      !forceRefresh &&
+      this._nodeDefsCache &&
+      now - this._nodeDefsCacheTime < ComfyApp.NODE_DEFS_CACHE_TTL
+    ) {
+      console.log(
+        '[PerfOpt] /object_info returned cached defs (age:',
+        Math.round((now - this._nodeDefsCacheTime) / 1000) + 's)'
+      )
+      return this._nodeDefsCache
+    }
+
+    // PerfOpt: Reuse prefetched /object_info response if available
+    let resp: Response | null = null
+    if (this._objectInfoPromise) {
+      try {
+        resp = await this._objectInfoPromise
+        this._objectInfoPromise = null
+        if (resp) {
+          console.log('[PerfOpt] /object_info reused prefetched response')
+        }
+      } catch {
+        this._objectInfoPromise = null
+        console.warn(
+          '[PerfOpt] Prefetch await failed, falling back to fresh request'
+        )
+      }
+    }
+    if (!resp) {
+      // Fresh request with its own timeout protection
+      resp = await api.fetchApi('/object_info')
+    }
+    // Skip batch translateNodeDef - i18n is applied on-demand at display time
+    const defs = await resp.json()
+    // Update cache
+    this._nodeDefsCache = defs
+    this._nodeDefsCacheTime = Date.now()
+    return defs
   }
 
   /**
-   * Registers nodes with the graph
+   * Registers nodes with the graph.
+   * PerfOpt: Only stores defs + pre-registers a few high-frequency nodes.
+   * Remaining nodes are registered on-demand (ensureNodesRegistered) or in background batches.
    */
   async registerNodes() {
-    // Load node definitions from the backend
     const defs = await this.getNodeDefs()
     await this.registerNodesFromDefs(defs)
     await useExtensionService().invokeExtensionsAsync('registerCustomNodes')
+
+    // Pre-register a minimal set of high-frequency nodes needed for immediate use
+    const eagerlyRegisteredNodeIds = [
+      'PreviewImage',
+      'SaveImage',
+      'CLIPTextEncode',
+      'CheckpointLoaderSimple',
+      'KSampler'
+    ]
+    for (const nodeId of eagerlyRegisteredNodeIds) {
+      const nodeDef = this._allNodeDefs.get(nodeId)
+      if (!nodeDef) continue
+      try {
+        await this.registerNodeDef(nodeId, nodeDef)
+      } catch (e) {
+        console.error(`[LazyNodeReg] Failed to eagerly register ${nodeId}:`, e)
+      }
+    }
+
     if (this.vueAppReady) {
       this.updateVueAppNodeDefs(defs)
     }
   }
 
   async registerNodeDef(nodeId: string, nodeDef: ComfyNodeDefV1) {
-    return await useLitegraphService().registerNodeDef(nodeId, nodeDef)
+    if (nodeId in LiteGraph.registered_node_types) {
+      this._registeredNodeIds.add(nodeId)
+      return
+    }
+    await useLitegraphService().registerNodeDef(nodeId, nodeDef)
+    this._registeredNodeIds.add(nodeId)
   }
 
   async registerNodesFromDefs(defs: Record<string, ComfyNodeDefV1>) {
     await useExtensionService().invokeExtensionsAsync('addCustomNodeDefs', defs)
+    // PerfOpt: Only store defs, do not register all nodes upfront
+    for (const nodeId in defs) {
+      this._allNodeDefs.set(nodeId, defs[nodeId])
+    }
+  }
 
-    // Register a node for each definition
-    await Promise.all(
-      Object.keys(defs).map((nodeId) =>
-        this.registerNodeDef(nodeId, defs[nodeId])
-      )
+  /**
+   * Register specific node types on-demand. Skips already-registered nodes.
+   * Called when loading a workflow (loadGraphData / loadApiJson).
+   */
+  async ensureNodesRegistered(nodeTypes: Iterable<string>) {
+    const toRegister: string[] = []
+    for (const nodeType of nodeTypes) {
+      if (nodeType in LiteGraph.registered_node_types) {
+        this._registeredNodeIds.add(nodeType)
+      } else if (this._allNodeDefs.has(nodeType)) {
+        toRegister.push(nodeType)
+      }
+    }
+    if (toRegister.length === 0) return
+    console.log(
+      `[LazyNodeReg] On-demand registering ${toRegister.length} node types (${this._allNodeDefs.size} total defs)`
     )
+    const startTime = performance.now()
+    for (const nodeId of toRegister) {
+      try {
+        await this.registerNodeDef(nodeId, this._allNodeDefs.get(nodeId)!)
+      } catch (e) {
+        console.error(`[LazyNodeReg] Failed to register ${nodeId}:`, e)
+      }
+    }
+    console.log(
+      `[LazyNodeReg] On-demand registration took ${(performance.now() - startTime).toFixed(1)}ms`
+    )
+  }
+
+  /**
+   * Register remaining unregistered nodes in background batches
+   * to avoid blocking the UI thread. Called after setup() is complete.
+   */
+  registerDeferredNodesInBackground() {
+    if (this._backgroundRegistrationDone) return
+    const BATCH_SIZE = 200
+    const unregistered = [...this._allNodeDefs.keys()].filter(
+      (id) => !(id in LiteGraph.registered_node_types)
+    )
+    if (unregistered.length === 0) {
+      this._backgroundRegistrationDone = true
+      return
+    }
+    let index = 0
+    const registerBatch = () => {
+      const batchEnd = Math.min(index + BATCH_SIZE, unregistered.length)
+      while (index < batchEnd) {
+        const nodeId = unregistered[index]
+        if (
+          !(nodeId in LiteGraph.registered_node_types) &&
+          this._allNodeDefs.has(nodeId)
+        ) {
+          try {
+            this.registerNodeDef(nodeId, this._allNodeDefs.get(nodeId)!)
+          } catch (e) {
+            console.error(
+              `[LazyNodeReg] Background registration failed for ${nodeId}:`,
+              e
+            )
+          }
+        } else if (nodeId in LiteGraph.registered_node_types) {
+          this._registeredNodeIds.add(nodeId)
+        }
+        index++
+      }
+      if (index < unregistered.length) {
+        // Schedule next batch without blocking UI
+        setTimeout(registerBatch, 0)
+      } else {
+        this._backgroundRegistrationDone = true
+        console.log(
+          `[LazyNodeReg] Background registration complete (${unregistered.length} nodes)`
+        )
+      }
+    }
+    // Start first batch on next tick
+    setTimeout(registerBatch, 0)
   }
 
   loadTemplateData(templateData: {
@@ -1126,6 +1305,28 @@ export class ComfyApp {
       })
     }
     useSubgraphService().loadSubgraphs(graphData)
+
+    // PerfOpt: Ensure nodes used in this workflow are registered before configuring
+    if (graphData?.nodes) {
+      const workflowNodeTypes = new Set<string>()
+      const collectNodeTypes = (nodes: any[]) => {
+        if (!Array.isArray(nodes)) return
+        for (const n of nodes) {
+          if (n.type) workflowNodeTypes.add(n.type)
+        }
+      }
+      collectNodeTypes(graphData.nodes)
+      if (graphData.definitions?.subgraphs) {
+        for (const subgraph of graphData.definitions.subgraphs) {
+          if (isSubgraphDefinition(subgraph)) {
+            collectNodeTypes(subgraph.nodes)
+          }
+        }
+      }
+      if (workflowNodeTypes.size > 0) {
+        await this.ensureNodesRegistered(workflowNodeTypes)
+      }
+    }
 
     const missingNodeTypes: MissingNodeType[] = []
     const missingModels: ModelFile[] = []
@@ -1376,8 +1577,6 @@ export class ComfyApp {
     executionStore.lastNodeErrors = null
 
     // Get auth token for backend nodes - uses workspace token if enabled, otherwise Firebase token
-    const comfyOrgAuthToken = await useFirebaseAuthStore().getAuthToken()
-    const comfyOrgApiKey = useApiKeyAuthStore().getApiKey()
 
     try {
       while (this.queueItems.length) {
@@ -1399,14 +1598,12 @@ export class ComfyApp {
           const p = await this.graphToPrompt(this.rootGraph)
           const queuedNodes = collectAllNodes(this.rootGraph)
           try {
-            api.authToken = comfyOrgAuthToken
-            api.apiKey = comfyOrgApiKey ?? undefined
+            // Auth tokens removed - not needed for localhost deployment
             const res = await api.queuePrompt(number, p, {
               partialExecutionTargets: queueNodeIds,
               previewMethod
             })
-            delete api.authToken
-            delete api.apiKey
+            // Auth tokens removed
             executionStore.lastNodeErrors = res.node_errors ?? null
             if (executionStore.lastNodeErrors?.length) {
               this.canvas.draw(true, true)
@@ -1536,7 +1733,7 @@ export class ComfyApp {
         const promptObj =
           typeof prompt === 'string' ? JSON.parse(prompt) : prompt
         if (this.isApiJson(promptObj)) {
-          this.loadApiJson(promptObj, fileName)
+          await this.loadApiJson(promptObj, fileName)
           return
         }
       } catch (err) {
@@ -1577,8 +1774,14 @@ export class ComfyApp {
     })
   }
 
-  loadApiJson(apiData: ComfyApiWorkflow, fileName: string) {
+  async loadApiJson(apiData: ComfyApiWorkflow, fileName: string) {
     useWorkflowService().beforeLoadNewGraph()
+
+    // PerfOpt: Ensure all node types used in the API workflow are registered
+    const apiNodeTypes = new Set(
+      Object.values(apiData).map((n) => n.class_type)
+    )
+    await this.ensureNodesRegistered(apiNodeTypes)
 
     const missingNodeTypes = Object.values(apiData).filter(
       (n) => !LiteGraph.registered_node_types[n.class_type]
@@ -1686,19 +1889,22 @@ export class ComfyApp {
   /**
    * Refresh combo list on whole nodes
    */
-  async refreshComboInNodes() {
+  async refreshComboInNodes({
+    showToast = true
+  }: { showToast?: boolean } = {}) {
     const requestToastMessage: ToastMessageOptions = {
       severity: 'info',
       summary: t('g.update'),
       detail: t('toastMessages.updateRequested')
     }
-    if (this.vueAppReady) {
+    if (showToast && this.vueAppReady) {
       useToastStore().add(requestToastMessage)
     }
 
-    const defs = await this.getNodeDefs()
+    const defs = await this.getNodeDefs(true) // forceRefresh=true for manual refresh
+    // Update stored defs and register any new nodes
     for (const nodeId in defs) {
-      this.registerNodeDef(nodeId, defs[nodeId])
+      this._allNodeDefs.set(nodeId, defs[nodeId])
     }
     // Refresh combo widgets in all nodes including those in subgraphs
     forEachNode(this.rootGraph, (node) => {
@@ -1742,13 +1948,15 @@ export class ComfyApp {
 
     if (this.vueAppReady) {
       this.updateVueAppNodeDefs(defs)
-      useToastStore().remove(requestToastMessage)
-      useToastStore().add({
-        severity: 'success',
-        summary: t('g.updated'),
-        detail: t('toastMessages.nodeDefinitionsUpdated'),
-        life: 1000
-      })
+      if (showToast) {
+        useToastStore().remove(requestToastMessage)
+        useToastStore().add({
+          severity: 'success',
+          summary: t('g.updated'),
+          detail: t('toastMessages.nodeDefinitionsUpdated'),
+          life: 1000
+        })
+      }
     }
   }
 

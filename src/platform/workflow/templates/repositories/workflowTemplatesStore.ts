@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { i18n, st } from '@/i18n'
-import { isCloud } from '@/platform/distribution/types'
 import { api } from '@/scripts/api'
 import type { NavGroupData, NavItemData } from '@/types/navTypes'
 import { generateCategoryId, getCategoryIcon } from '@/utils/categoryUtil'
@@ -243,7 +242,7 @@ export const useWorkflowTemplatesStore = defineStore(
       // Future: Add UX that allows local users to opt-in to templates with custom nodes,
       // potentially conditional on whether they have those specific custom nodes installed.
       // This would provide better template discovery while respecting local user workflows.
-      const filteredTemplates = isCloud
+      const filteredTemplates = false
         ? allTemplates
         : allTemplates.filter(
             (template) => !template.requiresCustomNodes?.length
@@ -481,7 +480,7 @@ export const useWorkflowTemplatesStore = defineStore(
           const [coreResult, englishResult, logoIndexResult] =
             await Promise.all([
               api.getCoreWorkflowTemplates(locale),
-              isCloud && locale !== 'en'
+              locale !== 'en'
                 ? api.getCoreWorkflowTemplates('en')
                 : Promise.resolve([]),
               fetchLogoIndex()

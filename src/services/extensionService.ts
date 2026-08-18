@@ -1,4 +1,3 @@
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
 import { useErrorHandling } from '@/composables/useErrorHandling'
 import { legacyMenuCompat } from '@/lib/litegraph/src/contextMenuCompat'
 import { useSettingStore } from '@/platform/settings/settingStore'
@@ -7,28 +6,55 @@ import { useCommandStore } from '@/stores/commandStore'
 import { useExtensionStore } from '@/stores/extensionStore'
 import { KeybindingImpl } from '@/platform/keybindings/keybinding'
 import { useKeybindingStore } from '@/platform/keybindings/keybindingStore'
+// BizyAir: Service Worker runtime cache purging is temporarily disabled.
+// Restore this import with the call below when SW is re-enabled.
+// import { purgeManagedRuntimeCaches } from '@/services/pwa/serviceWorkerManager'
 import { useMenuItemStore } from '@/stores/menuItemStore'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useBottomPanelStore } from '@/stores/workspace/bottomPanelStore'
 import type { ComfyExtension } from '@/types/comfy'
-import type { AuthUserInfo } from '@/types/authTypes'
 import { app } from '@/scripts/app'
 import type { ComfyApp } from '@/scripts/app'
+
+const EXTENSIONS_CACHE_VERSION_PARAM = 'extv'
+const EXTENSIONS_CACHE_VERSION_STORAGE_KEY = 'comfy.extensions.cacheVersion'
+
+async function purgeExtensionsCacheForUrlVersion(): Promise<void> {
+  if (typeof window === 'undefined') return
+
+  const extensionsCacheVersion = new URLSearchParams(
+    window.location.search
+  ).get(EXTENSIONS_CACHE_VERSION_PARAM)
+  if (!extensionsCacheVersion) return
+
+  const previousVersion = window.localStorage.getItem(
+    EXTENSIONS_CACHE_VERSION_STORAGE_KEY
+  )
+  if (previousVersion === extensionsCacheVersion) return
+
+  // BizyAir: Service Worker runtime cache purging is temporarily disabled.
+  // await purgeManagedRuntimeCaches(['extensions'], {
+  //   waitForReady: false
+  // })
+
+  window.localStorage.setItem(
+    EXTENSIONS_CACHE_VERSION_STORAGE_KEY,
+    extensionsCacheVersion
+  )
+}
 
 export const useExtensionService = () => {
   const extensionStore = useExtensionStore()
   const settingStore = useSettingStore()
   const keybindingStore = useKeybindingStore()
-  const {
-    wrapWithErrorHandling,
-    wrapWithErrorHandlingAsync,
-    toastErrorHandler
-  } = useErrorHandling()
+  const { wrapWithErrorHandling } = useErrorHandling()
 
   /**
    * Loads all extensions from the API into the window in parallel
    */
   const loadExtensions = async () => {
+    await purgeExtensionsCacheForUrlVersion()
+
     extensionStore.loadDisabledExtensionNames(
       settingStore.get('Comfy.Extension.Disabled')
     )
@@ -39,17 +65,37 @@ export const useExtensionService = () => {
     // may depend on them.
     await import('../extensions/core/index')
     extensionStore.captureCoreExtensions()
-    await Promise.all(
-      extensions
-        .filter((extension) => !extension.includes('extensions/core'))
-        .map(async (ext) => {
-          try {
-            await import(/* @vite-ignore */ api.fileURL(ext))
-          } catch (error) {
-            console.error('Error loading extension', ext, error)
-          }
-        })
+    // Use allSettled so one failed extension doesn't block others.
+    // Retry once on failure to handle transient network issues.
+    const extList = extensions.filter(
+      (extension) => !extension.includes('extensions/core')
     )
+    const results = await Promise.allSettled(
+      extList.map(async (ext) => {
+        try {
+          await import(/* @vite-ignore */ api.fileURL(ext))
+        } catch (error) {
+          // Retry once after a short delay (transient network failure)
+          try {
+            await new Promise((r) => setTimeout(r, 500))
+            await import(/* @vite-ignore */ api.fileURL(ext))
+          } catch (retryError) {
+            console.error(
+              'Error loading extension (retry failed)',
+              ext,
+              retryError
+            )
+          }
+        }
+      })
+    )
+    // Log summary of failures
+    const failed = results.filter((r) => r.status === 'rejected')
+    if (failed.length > 0) {
+      console.warn(
+        `[PerfOpt] ${failed.length}/${results.length} extensions failed to load`
+      )
+    }
   }
 
   /**
@@ -80,60 +126,6 @@ export const useExtensionService = () => {
           useWidgetStore().registerCustomWidgets(widgets)
         }
       })()
-    }
-
-    if (extension.onAuthUserResolved) {
-      const { onUserResolved } = useCurrentUser()
-      const handleUserResolved = wrapWithErrorHandlingAsync(
-        (user: AuthUserInfo) => extension.onAuthUserResolved?.(user, app),
-        (error) => {
-          console.error('[Extension Auth Hook Error]', {
-            extension: extension.name,
-            hook: 'onAuthUserResolved',
-            error
-          })
-          toastErrorHandler(error)
-        }
-      )
-      onUserResolved((user) => {
-        void handleUserResolved(user)
-      })
-    }
-
-    if (extension.onAuthTokenRefreshed) {
-      const { onTokenRefreshed } = useCurrentUser()
-      const handleTokenRefreshed = wrapWithErrorHandlingAsync(
-        () => extension.onAuthTokenRefreshed?.(),
-        (error) => {
-          console.error('[Extension Auth Hook Error]', {
-            extension: extension.name,
-            hook: 'onAuthTokenRefreshed',
-            error
-          })
-          toastErrorHandler(error)
-        }
-      )
-      onTokenRefreshed(() => {
-        void handleTokenRefreshed()
-      })
-    }
-
-    if (extension.onAuthUserLogout) {
-      const { onUserLogout } = useCurrentUser()
-      const handleUserLogout = wrapWithErrorHandlingAsync(
-        () => extension.onAuthUserLogout?.(),
-        (error) => {
-          console.error('[Extension Auth Hook Error]', {
-            extension: extension.name,
-            hook: 'onAuthUserLogout',
-            error
-          })
-          toastErrorHandler(error)
-        }
-      )
-      onUserLogout(() => {
-        void handleUserLogout()
-      })
     }
   }
 

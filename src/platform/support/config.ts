@@ -1,4 +1,4 @@
-import { isCloud, isNightly } from '@/platform/distribution/types'
+import { isNightly } from '@/platform/distribution/types'
 
 /**
  * Zendesk ticket form field IDs.
@@ -19,7 +19,7 @@ export const ZENDESK_FIELDS = {
  * Helps distinguish feedback from different build types.
  */
 export function getDistribution(): 'ccloud' | 'oss-nightly' | 'oss' {
-  if (isCloud) return 'ccloud'
+  if (false) return 'ccloud'
   if (isNightly) return 'oss-nightly'
   return 'oss'
 }

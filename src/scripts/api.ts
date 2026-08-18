@@ -1,4 +1,3 @@
-import { promiseTimeout, until } from '@vueuse/core'
 import axios from 'axios'
 import { get } from 'es-toolkit/compat'
 import { trimEnd } from 'es-toolkit'
@@ -8,7 +7,7 @@ import type {
   ModelFile,
   ModelFolderInfo
 } from '@/platform/assets/schemas/assetSchema'
-import { isCloud } from '@/platform/distribution/types'
+
 import { useToastStore } from '@/platform/updates/common/toastStore'
 import type { IFuseOptions } from 'fuse.js'
 import {
@@ -53,8 +52,7 @@ import type {
   JobListItem
 } from '@/platform/remote/comfyui/jobs/jobTypes'
 import type { ComfyNodeDef } from '@/schemas/nodeDefSchema'
-import type { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
-import type { AuthHeader } from '@/types/authTypes'
+
 import type { NodeExecutionId } from '@/types/nodeIdentification'
 import {
   fetchHistory,
@@ -315,7 +313,6 @@ export class ComfyApi extends EventTarget {
   /**
    * Cache Firebase auth store composable function.
    */
-  private authStoreComposable?: typeof useFirebaseAuthStore
 
   reportedUnknownMessageTypes = new Set<string>()
 
@@ -354,9 +351,8 @@ export class ComfyApi extends EventTarget {
     super()
     this.user = ''
     this.api_host = location.host
-    this.api_base = isCloud
-      ? ''
-      : location.pathname.split('/').slice(0, -1).join('/')
+
+    this.api_base = location.pathname.split('/').slice(0, -1).join('/')
     this.initialClientId = sessionStorage.getItem('clientId')
   }
 
@@ -367,75 +363,12 @@ export class ComfyApi extends EventTarget {
   apiURL(route: string): string {
     return this.api_base + '/api' + route
   }
-
   fileURL(route: string): string {
     return this.api_base + route
   }
 
-  /**
-   * Gets the Firebase auth store instance using cached composable function.
-   * Caches the composable function on first call, then reuses it.
-   * Returns null for non-cloud distributions.
-   * @returns The Firebase auth store instance, or null if not in cloud
-   */
-  private async getAuthStore() {
-    if (isCloud) {
-      if (!this.authStoreComposable) {
-        const module = await import('@/stores/firebaseAuthStore')
-        this.authStoreComposable = module.useFirebaseAuthStore
-      }
-
-      return this.authStoreComposable()
-    }
-  }
-
-  /**
-   * Waits for Firebase auth to be initialized before proceeding.
-   * Includes 10-second timeout to prevent infinite hanging.
-   */
-  private async waitForAuthInitialization(): Promise<void> {
-    if (isCloud) {
-      const authStore = await this.getAuthStore()
-      if (!authStore) return
-
-      if (authStore.isInitialized) return
-
-      try {
-        await Promise.race([
-          until(authStore.isInitialized),
-          promiseTimeout(10000)
-        ])
-      } catch {
-        console.warn('Firebase auth initialization timeout after 10 seconds')
-      }
-    }
-  }
-
   async fetchApi(route: string, options?: RequestInit) {
     const headers: HeadersInit = options?.headers ?? {}
-
-    if (isCloud) {
-      await this.waitForAuthInitialization()
-
-      // Get Firebase JWT token if user is logged in
-      const getAuthHeaderIfAvailable = async (): Promise<AuthHeader | null> => {
-        try {
-          const authStore = await this.getAuthStore()
-          return authStore ? await authStore.getAuthHeader() : null
-        } catch (error) {
-          console.warn('Failed to get auth header:', error)
-          return null
-        }
-      }
-
-      const authHeader = await getAuthHeaderIfAvailable()
-
-      if (authHeader) {
-        for (const [key, value] of Object.entries(authHeader)) {
-          addHeaderEntry(headers, key, value)
-        }
-      }
-    }
 
     addHeaderEntry(headers, 'Comfy-User', this.user)
     return fetch(this.apiURL(route), {
@@ -522,24 +455,6 @@ export class ComfyApi extends EventTarget {
 
     if (existingSession) {
       params.set('clientId', existingSession)
-    }
-
-    // Get auth token and set cloud params if available
-    // Uses workspace token (if enabled) or Firebase token
-    if (isCloud) {
-      try {
-        const authStore = await this.getAuthStore()
-        const authToken = await authStore?.getAuthToken()
-        if (authToken) {
-          params.set('token', authToken)
-        }
-      } catch (error) {
-        // Continue without auth token if there's an error
-        console.warn(
-          'Could not get auth token for WebSocket connection:',
-          error
-        )
-      }
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
@@ -1172,21 +1087,18 @@ export class ComfyApi extends EventTarget {
   }
 
   async getLogs(): Promise<string> {
-    const url = isCloud ? this.apiURL('/logs') : this.internalURL('/logs')
+    const url = this.internalURL('/logs')
     return (await axios.get(url)).data
   }
 
   async getRawLogs(): Promise<LogsRawResponse> {
-    const url = isCloud
-      ? this.apiURL('/logs/raw')
-      : this.internalURL('/logs/raw')
+    const url = this.internalURL('/logs/raw')
     return (await axios.get(url)).data
   }
 
   async subscribeLogs(enabled: boolean): Promise<void> {
-    const url = isCloud
-      ? this.apiURL('/logs/subscribe')
-      : this.internalURL('/logs/subscribe')
+    const url = this.internalURL('/logs/subscribe')
+
     return await axios.patch(url, {
       enabled,
       clientId: this.clientId

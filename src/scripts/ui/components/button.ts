@@ -24,7 +24,7 @@ export class ComfyButton implements ComfyComponent<HTMLElement> {
   private _over = 0
   private _popupOpen = false
   isOver = false
-  iconElement = $el('i.mdi')
+  iconElement = $el('i.pi')
   contentElement = $el('span')
   // @ts-expect-error fixme ts strict error
   popup: ComfyPopup
@@ -147,7 +147,7 @@ export class ComfyButton implements ComfyComponent<HTMLElement> {
   }
 
   updateIcon = () =>
-    (this.iconElement.className = `mdi mdi-${(this.isOver && this.overIcon) || this.icon}${this.iconSize ? ' mdi-' + this.iconSize + 'px' : ''}`)
+    (this.iconElement.className = `pi pi-${(this.isOver && this.overIcon) || this.icon}`)
   updateClasses = () => {
     const internalClasses = []
     if (this.hidden) {

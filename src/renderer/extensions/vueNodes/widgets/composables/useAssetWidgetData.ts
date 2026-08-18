@@ -2,7 +2,6 @@ import { computed, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 
 import type { AssetItem } from '@/platform/assets/schemas/assetSchema'
-import { isCloud } from '@/platform/distribution/types'
 import { useAssetsStore } from '@/stores/assetsStore'
 import { useModelToNodeStore } from '@/stores/modelToNodeStore'
 
@@ -20,7 +19,7 @@ import { useModelToNodeStore } from '@/stores/modelToNodeStore'
 export function useAssetWidgetData(
   nodeType: MaybeRefOrGetter<string | undefined>
 ) {
-  if (isCloud) {
+  if (false) {
     const assetsStore = useAssetsStore()
     const modelToNodeStore = useModelToNodeStore()
 

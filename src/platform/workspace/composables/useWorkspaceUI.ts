@@ -141,11 +141,11 @@ function useWorkspaceUIInternal() {
   }
 
   const workspaceType = computed<WorkspaceType>(
-    () => store.activeWorkspace?.type ?? 'personal'
+    () => (store.activeWorkspace?.type ?? 'personal') as WorkspaceType
   )
 
   const workspaceRole = computed<WorkspaceRole>(
-    () => store.activeWorkspace?.role ?? 'owner'
+    () => (store.activeWorkspace?.role ?? 'owner') as WorkspaceRole
   )
 
   const permissions = computed<WorkspacePermissions>(() =>

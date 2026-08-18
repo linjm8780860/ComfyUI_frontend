@@ -1,4 +1,3 @@
-import { retry } from 'es-toolkit'
 import _ from 'es-toolkit/compat'
 import { until, useAsyncState } from '@vueuse/core'
 import { defineStore } from 'pinia'
@@ -6,10 +5,16 @@ import { compare, valid } from 'semver'
 import { ref } from 'vue'
 
 import type { SettingParams } from '@/platform/settings/types'
+import {
+  hasStoredLocalePreference,
+  useLocaleStore
+} from '@/platform/settings/localeStore'
 import type { Settings } from '@/schemas/apiSchema'
 import { api } from '@/scripts/api'
 import { app } from '@/scripts/app'
 import type { TreeNode } from '@/types/treeExplorerTypes'
+
+const LOCAL_LOCALE_SETTING_ID = 'Comfy.Locale' as const
 
 export const getSettingInfo = (setting: SettingParams) => {
   const parts = setting.category || setting.id.split('.')
@@ -61,11 +66,22 @@ export const useSettingStore = defineStore('setting', () => {
           'Setting values must be loaded before any setting is registered.'
         )
       }
-      settingValues.value = await retry(() => api.getSettings(), {
-        retries: 3,
-        delay: (attempt) => Math.min(1000 * Math.pow(2, attempt), 8000)
+      const SETTINGS_TIMEOUT_MS = 8000
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('getSettings timeout')),
+          SETTINGS_TIMEOUT_MS
+        )
+      )
+      settingValues.value = await Promise.race([
+        api.getSettings(),
+        timeoutPromise
+      ]).catch((e) => {
+        console.warn('Failed to load settings, using defaults:', e)
+        return {} as Settings
       })
       await migrateZoomThresholdToFontSize()
+      await migrateLocaleSetting()
     },
     undefined,
     { immediate: false }
@@ -88,6 +104,9 @@ export const useSettingStore = defineStore('setting', () => {
    * @returns Whether the setting exists.
    */
   function exists<K extends keyof Settings>(key: K) {
+    if (key === LOCAL_LOCALE_SETTING_ID) {
+      return hasStoredLocalePreference()
+    }
     return settingValues.value[key] !== undefined
   }
 
@@ -109,7 +128,13 @@ export const useSettingStore = defineStore('setting', () => {
     if (newValue === oldValue) return undefined
 
     onChange(settingsById.value[key], newValue, oldValue)
-    settingValues.value[key] = newValue
+    if (key === LOCAL_LOCALE_SETTING_ID) {
+      const localeStore = useLocaleStore()
+      localeStore.setLocale(String(newValue))
+      settingValues.value[LOCAL_LOCALE_SETTING_ID] = localeStore.locale
+    } else {
+      settingValues.value[key] = newValue
+    }
     return newValue as Settings[K]
   }
 
@@ -121,6 +146,7 @@ export const useSettingStore = defineStore('setting', () => {
   async function set<K extends keyof Settings>(key: K, value: Settings[K]) {
     const applied = applySettingLocally(key, value)
     if (applied === undefined) return
+    if (key === LOCAL_LOCALE_SETTING_ID) return
     await api.storeSetting(key, applied)
   }
 
@@ -136,7 +162,7 @@ export const useSettingStore = defineStore('setting', () => {
         key,
         settings[key] as Settings[typeof key]
       )
-      if (applied !== undefined) {
+      if (applied !== undefined && key !== LOCAL_LOCALE_SETTING_ID) {
         updatedSettings[key] = applied
       }
     }
@@ -152,6 +178,9 @@ export const useSettingStore = defineStore('setting', () => {
    * @returns The value of the setting.
    */
   function get<K extends keyof Settings>(key: K): Settings[K] {
+    if (key === LOCAL_LOCALE_SETTING_ID) {
+      return _.cloneDeep(useLocaleStore().locale) as Settings[K]
+    }
     // Clone the value when returning to prevent external mutations
     return _.cloneDeep(settingValues.value[key] ?? getDefaultValue(key)!)
   }
@@ -294,6 +323,22 @@ export const useSettingStore = defineStore('setting', () => {
       // Store the migrated setting
       await api.storeSetting(newKey, clampedFontSize)
       await api.storeSetting(oldKey, undefined)
+    }
+  }
+
+  async function migrateLocaleSetting() {
+    const legacyLocale = settingValues.value[LOCAL_LOCALE_SETTING_ID]
+    if (typeof legacyLocale !== 'string') return
+
+    const localeStore = useLocaleStore()
+    localeStore.migrateLegacyLocale(legacyLocale)
+    settingValues.value[LOCAL_LOCALE_SETTING_ID] = localeStore.locale
+    if (!hasStoredLocalePreference()) return
+
+    try {
+      await api.storeSetting(LOCAL_LOCALE_SETTING_ID, undefined)
+    } catch (error) {
+      console.warn('Failed to remove legacy locale setting:', error)
     }
   }
 

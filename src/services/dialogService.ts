@@ -8,7 +8,6 @@ import TopUpCreditsDialogContentLegacy from '@/components/dialog/content/TopUpCr
 import TopUpCreditsDialogContentWorkspace from '@/components/dialog/content/TopUpCreditsDialogContentWorkspace.vue'
 import { t } from '@/i18n'
 import { useTelemetry } from '@/platform/telemetry'
-import { isCloud } from '@/platform/distribution/types'
 import { useBillingContext } from '@/composables/billing/useBillingContext'
 import { useDialogStore } from '@/stores/dialogStore'
 import type {
@@ -32,10 +31,6 @@ const lazyMissingNodesFooter = () =>
   import('@/components/dialog/content/MissingNodesFooter.vue')
 const lazyMissingModelsWarning = () =>
   import('@/components/dialog/content/MissingModelsWarning.vue')
-const lazyApiNodesSignInContent = () =>
-  import('@/components/dialog/content/ApiNodesSignInContent.vue')
-const lazySignInContent = () =>
-  import('@/components/dialog/content/SignInContent.vue')
 const lazyUpdatePasswordContent = () =>
   import('@/components/dialog/content/UpdatePasswordContent.vue')
 const lazyComfyOrgHeader = () =>
@@ -282,55 +277,6 @@ export const useDialogService = () => {
    * Shows a dialog requiring sign in for API nodes
    * @returns Promise that resolves to true if user clicks login, false if cancelled
    */
-  async function showApiNodesSignInDialog(
-    apiNodeNames: string[]
-  ): Promise<boolean> {
-    const [{ default: ApiNodesSignInContent }, { default: ComfyOrgHeader }] =
-      await Promise.all([lazyApiNodesSignInContent(), lazyComfyOrgHeader()])
-
-    return new Promise<boolean>((resolve) => {
-      dialogStore.showDialog({
-        key: 'api-nodes-signin',
-        component: ApiNodesSignInContent,
-        props: {
-          apiNodeNames,
-          onLogin: () => showSignInDialog().then((result) => resolve(result)),
-          onCancel: () => resolve(false)
-        },
-        headerComponent: ComfyOrgHeader,
-        dialogComponentProps: {
-          closable: false,
-          onClose: () => resolve(false)
-        }
-      })
-    }).then((result) => {
-      dialogStore.closeDialog({ key: 'api-nodes-signin' })
-      return result
-    })
-  }
-
-  async function showSignInDialog(): Promise<boolean> {
-    const [{ default: SignInContent }, { default: ComfyOrgHeader }] =
-      await Promise.all([lazySignInContent(), lazyComfyOrgHeader()])
-
-    return new Promise<boolean>((resolve) => {
-      dialogStore.showDialog({
-        key: 'global-signin',
-        component: SignInContent,
-        headerComponent: ComfyOrgHeader,
-        props: {
-          onSuccess: () => resolve(true)
-        },
-        dialogComponentProps: {
-          closable: true,
-          onClose: () => resolve(false)
-        }
-      })
-    }).then((result) => {
-      dialogStore.closeDialog({ key: 'global-signin' })
-      return result
-    })
-  }
 
   async function prompt({
     title,
@@ -608,7 +554,7 @@ export const useDialogService = () => {
   }
 
   async function showSubscriptionRequiredDialog() {
-    if (!isCloud || !window.__CONFIG__?.subscription_required) {
+    if (!false || !window.__CONFIG__?.subscription_required) {
       return
     }
 
@@ -766,8 +712,6 @@ export const useDialogService = () => {
     showSettingsDialog,
     showAboutDialog,
     showExecutionErrorDialog,
-    showApiNodesSignInDialog,
-    showSignInDialog,
     showSubscriptionRequiredDialog,
     showTopUpCreditsDialog,
     showUpdatePasswordDialog,

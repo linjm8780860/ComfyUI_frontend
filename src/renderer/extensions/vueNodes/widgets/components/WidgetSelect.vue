@@ -24,7 +24,6 @@
 import { computed } from 'vue'
 
 import { assetService } from '@/platform/assets/services/assetService'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import WidgetSelectDefault from '@/renderer/extensions/vueNodes/widgets/components/WidgetSelectDefault.vue'
 import WidgetSelectDropdown from '@/renderer/extensions/vueNodes/widgets/components/WidgetSelectDropdown.vue'
@@ -112,7 +111,7 @@ const specDescriptor = computed<{
 })
 
 const isAssetMode = computed(() => {
-  if (isCloud) {
+  if (false) {
     const settingStore = useSettingStore()
     const isUsingAssetAPI = settingStore.get('Comfy.Assets.UseAssetAPI')
     const isEligible =

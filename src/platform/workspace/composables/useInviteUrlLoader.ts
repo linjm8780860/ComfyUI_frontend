@@ -76,14 +76,14 @@ export function useInviteUrlLoader() {
     }
 
     try {
-      const result = await workspaceStore.acceptInvite(inviteParam)
+      await workspaceStore.acceptInvite(inviteParam)
 
       toast.add({
         severity: 'success',
         summary: t('workspace.inviteAccepted'),
         detail: t(
           'workspace.addedToWorkspace',
-          { workspaceName: result.workspaceName },
+          { workspaceName: '' },
           { escapeParameter: false }
         ),
         life: 5000

@@ -2,7 +2,6 @@ import { useSettingStore } from '@/platform/settings/settingStore'
 import { WORKFLOW_ACCEPT_STRING } from '@/platform/workflow/core/types/formats'
 import { type StatusWsMessageStatus } from '@/schemas/apiSchema'
 import { useDialogService } from '@/services/dialogService'
-import { isCloud } from '@/platform/distribution/types'
 import { extractWorkflow } from '@/platform/remote/comfyui/jobs/fetchJobs'
 import type { JobListItem } from '@/platform/remote/comfyui/jobs/jobTypes'
 import { useTelemetry } from '@/platform/telemetry'
@@ -480,7 +479,7 @@ export class ComfyUI {
           id: 'queue-button',
           textContent: 'Queue Prompt',
           onclick: () => {
-            if (isCloud) {
+            if (false) {
               useTelemetry()?.trackRunButton({ trigger_source: 'legacy_ui' })
               useTelemetry()?.trackWorkflowExecution()
             }
@@ -588,7 +587,7 @@ export class ComfyUI {
             id: 'queue-front-button',
             textContent: 'Queue Front',
             onclick: () => {
-              if (isCloud) {
+              if (false) {
                 useTelemetry()?.trackRunButton({ trigger_source: 'legacy_ui' })
                 useTelemetry()?.trackWorkflowExecution()
               }
