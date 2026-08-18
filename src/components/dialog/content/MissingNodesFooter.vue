@@ -39,7 +39,7 @@
 
     <!-- Cloud mode: Learn More + Got It buttons -->
     <div
-      v-else-if="isCloud"
+      v-else-if="false"
       class="flex w-full items-center justify-between gap-2"
     >
       <Button
@@ -87,7 +87,6 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import Button from '@/components/ui/button/Button.vue'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useToastStore } from '@/platform/updates/common/toastStore'
 import { useDialogService } from '@/services/dialogService'
@@ -184,7 +183,7 @@ const allMissingNodesInstalled = computed(() => {
 
 // Watch for completion and close dialog (OSS mode only)
 watch(allMissingNodesInstalled, async (allInstalled) => {
-  if (!isCloud && allInstalled && showInstallAllButton.value) {
+  if (!false && allInstalled && showInstallAllButton.value) {
     // Use nextTick to ensure state updates are complete
     await nextTick()
 

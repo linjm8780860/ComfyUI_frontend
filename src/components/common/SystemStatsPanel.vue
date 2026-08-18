@@ -44,7 +44,6 @@ import TabView from 'primevue/tabview'
 import { computed } from 'vue'
 
 import DeviceInfo from '@/components/common/DeviceInfo.vue'
-import { isCloud } from '@/platform/distribution/types'
 import type { SystemStats } from '@/schemas/apiSchema'
 import { formatCommitHash, formatSize } from '@/utils/formatUtil'
 
@@ -95,7 +94,7 @@ const cloudColumns: ColumnDef[] = [
   { field: 'workflow_templates_version', header: 'Templates Version' }
 ]
 
-const systemColumns = computed(() => (isCloud ? cloudColumns : localColumns))
+const systemColumns = computed(() => (false ? cloudColumns : localColumns))
 
 const getDisplayValue = (column: ColumnDef) => {
   const value = systemInfo.value[column.field]

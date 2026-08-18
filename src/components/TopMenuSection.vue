@@ -35,6 +35,7 @@
           </div>
 
           <div
+            v-if="false"
             ref="actionbarContainerRef"
             class="actionbar-container relative pointer-events-auto flex gap-2 h-12 items-center rounded-lg border border-interface-stroke bg-comfy-menu-bg px-2 shadow-interface"
           >
@@ -81,7 +82,7 @@
               :model="queueContextMenuItems"
             />
             <CurrentUserButton
-              v-if="isLoggedIn && !isIntegratedTabBar"
+              v-if="false && !isIntegratedTabBar"
               class="shrink-0"
             />
             <LoginButton v-else-if="isDesktop && !isIntegratedTabBar" />
@@ -138,10 +139,8 @@ import SubgraphBreadcrumb from '@/components/breadcrumb/SubgraphBreadcrumb.vue'
 import QueueInlineProgressSummary from '@/components/queue/QueueInlineProgressSummary.vue'
 import QueueProgressOverlay from '@/components/queue/QueueProgressOverlay.vue'
 import ActionBarButtons from '@/components/topbar/ActionBarButtons.vue'
-import CurrentUserButton from '@/components/topbar/CurrentUserButton.vue'
 import LoginButton from '@/components/topbar/LoginButton.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { useCurrentUser } from '@/composables/auth/useCurrentUser'
 import { useErrorHandling } from '@/composables/useErrorHandling'
 import { buildTooltipConfig } from '@/composables/useTooltipConfig'
 import { useSettingStore } from '@/platform/settings/settingStore'
@@ -162,7 +161,6 @@ const settingStore = useSettingStore()
 const workspaceStore = useWorkspaceStore()
 const rightSidePanelStore = useRightSidePanelStore()
 const managerState = useManagerState()
-const { isLoggedIn } = useCurrentUser()
 const { t, n } = useI18n()
 const { toastErrorHandler } = useErrorHandling()
 const commandStore = useCommandStore()

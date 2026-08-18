@@ -1,21 +1,21 @@
 <template>
   <div
     class="comfy-missing-nodes flex w-[490px] flex-col border-t border-border-default"
-    :class="isCloud ? 'border-b' : ''"
+    :class="false ? 'border-b' : ''"
   >
     <div class="flex h-full w-full flex-col gap-4 p-4">
       <!-- Description -->
       <div>
         <p class="m-0 text-sm leading-5 text-muted-foreground">
           {{
-            isCloud
+            false
               ? $t('missingNodes.cloud.description')
               : $t('missingNodes.oss.description')
           }}
         </p>
       </div>
 
-      <MissingCoreNodesMessage v-if="!isCloud" :missing-core-nodes />
+      <MissingCoreNodesMessage v-if="!false" :missing-core-nodes />
 
       <!-- QUICK FIX AVAILABLE Section -->
       <div v-if="replaceableNodes.length > 0" class="flex flex-col gap-2">
@@ -229,7 +229,6 @@ import { computed, ref } from 'vue'
 
 import MissingCoreNodesMessage from '@/components/dialog/content/MissingCoreNodesMessage.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { isCloud } from '@/platform/distribution/types'
 import type { NodeReplacement } from '@/platform/nodeReplacement/types'
 import { useNodeReplacement } from '@/platform/nodeReplacement/useNodeReplacement'
 import { useDialogStore } from '@/stores/dialogStore'

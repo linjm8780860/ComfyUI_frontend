@@ -47,13 +47,12 @@ import type { DialogPassThroughOptions } from 'primevue/dialog'
 import { computed } from 'vue'
 
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
-import { isCloud } from '@/platform/distribution/types'
 import type { DialogComponentProps } from '@/stores/dialogStore'
 import { useDialogStore } from '@/stores/dialogStore'
 
 const { flags } = useFeatureFlags()
 const teamWorkspacesEnabled = computed(
-  () => isCloud && flags.teamWorkspacesEnabled
+  () => false && flags.teamWorkspacesEnabled
 )
 
 const dialogStore = useDialogStore()

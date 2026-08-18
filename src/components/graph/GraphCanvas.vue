@@ -3,7 +3,7 @@
   <!-- If load immediately, the top-level splitter stateKey won't be correctly
   synced with the stateStorage (localStorage). -->
   <LiteGraphCanvasSplitterOverlay v-if="comfyAppReady">
-    <template v-if="showUI" #workflow-tabs>
+    <template v-if="false" #workflow-tabs>
       <div
         v-if="workflowTabsPosition === 'Topbar'"
         class="workflow-tabs-container pointer-events-auto relative h-9.5 w-full"
@@ -41,7 +41,7 @@
       <NodePropertiesPanel />
     </template>
     <template #graph-canvas-panel>
-      <GraphCanvasMenu v-if="canvasMenuEnabled" class="pointer-events-auto" />
+      <GraphCanvasMenu v-if="false" class="pointer-events-auto" />
       <MiniMap
         v-if="comfyAppReady && minimapEnabled && betaMenuEnabled"
         class="pointer-events-auto"
@@ -143,6 +143,7 @@ import { useVueFeatureFlags } from '@/composables/useVueFeatureFlags'
 import { LiteGraph } from '@/lib/litegraph/src/litegraph'
 import { useLitegraphSettings } from '@/platform/settings/composables/useLitegraphSettings'
 import { CORE_SETTINGS } from '@/platform/settings/constants/coreSettings'
+import { useLocaleStore } from '@/platform/settings/localeStore'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useToastStore } from '@/platform/updates/common/toastStore'
 import { useWorkflowService } from '@/platform/workflow/core/services/workflowService'
@@ -173,7 +174,6 @@ import { isNativeWindow } from '@/utils/envUtil'
 import { forEachNode } from '@/utils/graphTraversalUtil'
 
 import SelectionRectangle from './SelectionRectangle.vue'
-import { isCloud } from '@/platform/distribution/types'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import { useInviteUrlLoader } from '@/platform/workspace/composables/useInviteUrlLoader'
 
@@ -186,6 +186,8 @@ const nodeSearchboxPopoverRef = shallowRef<InstanceType<
   typeof NodeSearchboxPopover
 > | null>(null)
 const settingStore = useSettingStore()
+const localeStore = useLocaleStore()
+const { locale } = storeToRefs(localeStore)
 const nodeDefStore = useNodeDefStore()
 const workspaceStore = useWorkspaceStore()
 const canvasStore = useCanvasStore()
@@ -205,9 +207,6 @@ const betaMenuEnabled = computed(
 )
 const workflowTabsPosition = computed(() =>
   settingStore.get('Comfy.Workflow.WorkflowTabsPosition')
-)
-const canvasMenuEnabled = computed(() =>
-  settingStore.get('Comfy.Graph.CanvasMenu')
 )
 const tooltipEnabled = computed(() => settingStore.get('Comfy.EnableTooltips'))
 const selectionToolboxEnabled = computed(() =>
@@ -421,7 +420,7 @@ const comfyAppReady = ref(false)
 const workflowPersistence = useWorkflowPersistence()
 const { flags } = useFeatureFlags()
 // Set up invite loader during setup phase so useRoute/useRouter work correctly
-const inviteUrlLoader = isCloud ? useInviteUrlLoader() : null
+const inviteUrlLoader = false ? useInviteUrlLoader() : null
 useCanvasDrop(canvasRef)
 useLitegraphSettings()
 useNodeBadge()
@@ -433,23 +432,23 @@ usePaste()
 useWorkflowAutoSave()
 
 // Start watching for locale change after the initial value is loaded.
-watch(
-  () => settingStore.get('Comfy.Locale'),
-  async (_newLocale, oldLocale) => {
-    if (!oldLocale) return
-    await Promise.all([
-      until(() => isSettingsReady.value || !!settingsError.value).toBe(true),
-      until(() => isI18nReady.value || !!i18nError.value).toBe(true)
-    ])
-    if (settingsError.value || i18nError.value) {
-      console.warn(
-        'Somehow the Locale setting was changed while the settings or i18n had a setup error'
-      )
-    }
-    await useCommandStore().execute('Comfy.RefreshNodeDefinitions')
-    await useWorkflowService().reloadCurrentWorkflow()
+watch(locale, async (_newLocale, oldLocale) => {
+  if (!oldLocale) return
+  await Promise.all([
+    until(() => isSettingsReady.value || !!settingsError.value).toBe(true),
+    until(() => isI18nReady.value || !!i18nError.value).toBe(true),
+    until(comfyAppReady).toBe(true)
+  ])
+  if (settingsError.value || i18nError.value) {
+    console.warn(
+      'Somehow the Locale setting was changed while the settings or i18n had a setup error'
+    )
   }
-)
+  await useCommandStore().execute('Comfy.RefreshNodeDefinitions', {
+    metadata: { showToast: false }
+  })
+  await useWorkflowService().reloadCurrentWorkflow()
+})
 useEventListener(
   () => canvasStore.canvas?.canvas,
   'litegraph:set-graph',
@@ -515,11 +514,10 @@ onMounted(async () => {
     'Comfy.CustomColorPalettes'
   )
 
-  // Restore saved workflow and workflow tabs state
-  await workflowPersistence.initializeWorkflow()
-  workflowPersistence.restoreWorkflowTabsState()
-
-  // Load template from URL if present
+  // BizyAir: Skip local workflow restoration - workflows are always injected
+  // via postMessage by the BizyDraft plugin (handlers.js loadWorkflow/replaceWorkflow).
+  // Loading from localStorage/IndexedDB is redundant and gets overwritten immediately.
+  // Only keep template URL loading for direct template links.
   await workflowPersistence.loadTemplateFromUrlIfPresent()
 
   // Accept workspace invite from URL if present (e.g., ?invite=TOKEN)
