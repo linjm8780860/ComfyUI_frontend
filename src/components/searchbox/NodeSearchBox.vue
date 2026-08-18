@@ -1,6 +1,6 @@
 <template>
   <div
-    class="comfy-vue-node-search-container flex w-full min-w-96 items-center justify-center"
+    class="comfy-vue-node-search-container flex w-full min-w-96 items-center justify-center text-text-primary"
   >
     <div
       v-if="enableNodePreview && hoveredSuggestion"
@@ -39,7 +39,7 @@
     <AutoCompletePlus
       ref="autoCompletePlus"
       :model-value="filters"
-      class="comfy-vue-node-search-box z-10 grow"
+      class="comfy-vue-node-search-box z-10 grow rounded-lg border border-interface-stroke bg-interface-panel-surface shadow-interface"
       scroll-height="40vh"
       :placeholder="placeholder"
       :input-id="inputId"

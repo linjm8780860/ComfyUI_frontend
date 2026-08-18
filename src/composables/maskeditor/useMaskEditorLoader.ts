@@ -2,7 +2,6 @@ import { useMaskEditorDataStore } from '@/stores/maskEditorDataStore'
 import type { ImageRef, ImageLayer } from '@/stores/maskEditorDataStore'
 import type { LGraphNode } from '@/lib/litegraph/src/litegraph'
 import { useNodeOutputStore } from '@/stores/imagePreviewStore'
-import { isCloud } from '@/platform/distribution/types'
 import { api } from '@/scripts/api'
 import { app } from '@/scripts/app'
 
@@ -145,7 +144,7 @@ export function useMaskEditorLoader() {
       const fileToQuery = widgetFilename || nodeImageRef.filename
 
       let maskLayersFromApi: MaskLayersResponse | undefined
-      if (isCloud) {
+      if (false) {
         try {
           const response = await api.fetchApi(
             `/files/mask-layers?filename=${fileToQuery}`

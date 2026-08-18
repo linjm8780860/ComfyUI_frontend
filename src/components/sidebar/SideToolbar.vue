@@ -19,7 +19,6 @@
       "
     >
       <div ref="topToolbarRef" :class="groupClasses">
-        <ComfyMenuButton />
         <SidebarIcon
           v-for="tab in tabs"
           :key="tab.id"
@@ -33,24 +32,10 @@
           :class="tab.id + '-tab-button'"
           @click="onTabClick(tab)"
         />
-        <SidebarTemplatesButton />
       </div>
 
-      <div ref="bottomToolbarRef" class="mt-auto" :class="groupClasses">
-        <SidebarLogoutIcon
-          v-if="userStore.isMultiUserServer"
-          :is-small="isSmall"
-        />
-        <SidebarHelpCenterIcon v-if="!isIntegratedTabBar" :is-small="isSmall" />
-        <SidebarBottomPanelToggleButton v-if="!isCloud" :is-small="isSmall" />
-        <SidebarShortcutsToggleButton :is-small="isSmall" />
-        <SidebarSettingsButton :is-small="isSmall" />
-        <ModeToggle
-          v-if="menuItemStore.hasSeenLinear || flags.linearToggleEnabled"
-        />
-      </div>
+      <div ref="bottomToolbarRef" class="mt-auto" :class="groupClasses"></div>
     </div>
-    <HelpCenterPopups :is-small="isSmall" />
   </nav>
 </template>
 
@@ -60,41 +45,25 @@ import { debounce } from 'es-toolkit/compat'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import HelpCenterPopups from '@/components/helpcenter/HelpCenterPopups.vue'
-import ComfyMenuButton from '@/components/sidebar/ComfyMenuButton.vue'
-import ModeToggle from '@/components/sidebar/ModeToggle.vue'
-import SidebarBottomPanelToggleButton from '@/components/sidebar/SidebarBottomPanelToggleButton.vue'
-import SidebarSettingsButton from '@/components/sidebar/SidebarSettingsButton.vue'
-import SidebarShortcutsToggleButton from '@/components/sidebar/SidebarShortcutsToggleButton.vue'
-import { useFeatureFlags } from '@/composables/useFeatureFlags'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useTelemetry } from '@/platform/telemetry'
 import { useCanvasStore } from '@/renderer/core/canvas/canvasStore'
 import { useCommandStore } from '@/stores/commandStore'
 import { useKeybindingStore } from '@/platform/keybindings/keybindingStore'
-import { useMenuItemStore } from '@/stores/menuItemStore'
-import { useUserStore } from '@/stores/userStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import type { SidebarTabExtension } from '@/types/extensionTypes'
 import { cn } from '@/utils/tailwindUtil'
 
-import SidebarHelpCenterIcon from './SidebarHelpCenterIcon.vue'
 import SidebarIcon from './SidebarIcon.vue'
-import SidebarLogoutIcon from './SidebarLogoutIcon.vue'
-import SidebarTemplatesButton from './SidebarTemplatesButton.vue'
 
 const { t } = useI18n()
 const workspaceStore = useWorkspaceStore()
 const settingStore = useSettingStore()
-const userStore = useUserStore()
 const commandStore = useCommandStore()
 const canvasStore = useCanvasStore()
-const menuItemStore = useMenuItemStore()
 const sideToolbarRef = ref<HTMLElement>()
 const topToolbarRef = ref<HTMLElement>()
 const bottomToolbarRef = ref<HTMLElement>()
-const { flags } = useFeatureFlags()
 
 const isSmall = computed(
   () => settingStore.get('Comfy.Sidebar.Size') === 'small'
@@ -103,9 +72,6 @@ const sidebarLocation = computed<'left' | 'right'>(() =>
   settingStore.get('Comfy.Sidebar.Location')
 )
 const sidebarStyle = computed(() => settingStore.get('Comfy.Sidebar.Style'))
-const isIntegratedTabBar = computed(
-  () => settingStore.get('Comfy.UI.TabBarLayout') === 'Integrated'
-)
 const isConnected = computed(
   () =>
     selectedTab.value ||

@@ -241,7 +241,7 @@ const translatedItems = computed(() => {
   let helpItem: MenuItem | undefined
 
   if (helpIndex !== -1) {
-    items[helpIndex].icon = 'mdi mdi-help-circle-outline'
+    items[helpIndex].icon = 'pi pi-question-circle'
     // If help is not the last item (i.e. we have extension commands), separate them
     const isLastItem = helpIndex !== items.length - 1
     helpItem = items.splice(

@@ -1,6 +1,6 @@
 import { computed, reactive, readonly } from 'vue'
 
-import { isCloud, isNightly } from '@/platform/distribution/types'
+import { isNightly } from '@/platform/distribution/types'
 import {
   isAuthenticatedConfigLoaded,
   remoteConfig
@@ -80,7 +80,7 @@ export function useFeatureFlags() {
      * and prevents race conditions during initialization.
      */
     get teamWorkspacesEnabled() {
-      if (!isCloud) return false
+      if (!false) return false
 
       // Only return true if authenticated config has been loaded.
       // This prevents race conditions where code checks this flag before

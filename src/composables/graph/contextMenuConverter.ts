@@ -42,14 +42,12 @@ const CORE_MENU_ITEMS = new Set([
   'Remove Bypass',
   'Mute',
   // Structure operations
-  'Convert to Subgraph',
   'Frame selection',
   'Frame Nodes',
   'Minimize Node',
   'Expand',
   'Collapse',
   // Info and adjustments
-  'Node Info',
   'Resize',
   'Title',
   'Properties Panel',
@@ -226,7 +224,6 @@ const MENU_ORDER: string[] = [
   'Remove Bypass',
   'Mute',
   // Section 3: Structure operations
-  'Convert to Subgraph',
   'Frame selection',
   'Frame Nodes',
   'Minimize Node',
@@ -235,7 +232,6 @@ const MENU_ORDER: string[] = [
   'Resize',
   'Clone',
   // Section 4: Node properties
-  'Node Info',
   'Color',
   // Section 5: Node-specific operations
   'Open in Mask Editor',

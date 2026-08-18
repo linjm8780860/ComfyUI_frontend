@@ -97,7 +97,6 @@ import { useI18n } from 'vue-i18n'
 
 import Button from '@/components/ui/button/Button.vue'
 import { useCopyToClipboard } from '@/composables/useCopyToClipboard'
-import { isCloud } from '@/platform/distribution/types'
 import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
 import { useDialogService } from '@/services/dialogService'
 import { useExecutionStore } from '@/stores/executionStore'
@@ -312,7 +311,7 @@ const extraRows = computed<DetailRow[]>(() => {
         value: totalGenTimeValue
       }
     ]
-    if (isCloud) {
+    if (false) {
       rows.push({
         label: t('queue.jobDetails.computeHoursUsed'),
         value: computeHoursValue
@@ -331,7 +330,7 @@ const extraRows = computed<DetailRow[]>(() => {
       { label: t('queue.jobDetails.queuedAt'), value: queuedAtValue.value },
       { label: t('queue.jobDetails.failedAfter'), value: failedAfterValue }
     ]
-    if (isCloud) {
+    if (false) {
       rows.push({
         label: t('queue.jobDetails.computeHoursUsed'),
         value: computeHoursValue

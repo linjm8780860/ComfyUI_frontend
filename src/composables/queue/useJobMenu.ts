@@ -6,7 +6,6 @@ import { useCopyToClipboard } from '@/composables/useCopyToClipboard'
 import { st, t } from '@/i18n'
 import { mapTaskOutputToAssetItem } from '@/platform/assets/composables/media/assetMappers'
 import { useMediaAssetActions } from '@/platform/assets/composables/useMediaAssetActions'
-import { isCloud } from '@/platform/distribution/types'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import { useWorkflowService } from '@/platform/workflow/core/services/workflowService'
 import { useWorkflowStore } from '@/platform/workflow/management/stores/workflowStore'
@@ -58,9 +57,9 @@ export function useJobMenu(
   const openJobWorkflow = async (item?: JobListItem | null) => {
     const target = resolveItem(item)
     if (!target) return
-    const data = await getJobWorkflow(target.id)
+    const data = await getJobWorkflow(target!.id)
     if (!data) return
-    const filename = `Job ${target.id}.json`
+    const filename = `Job ${target!.id}.json`
     const temp = workflowStore.createTemporary(filename, data)
     await workflowService.openWorkflow(temp)
   }
@@ -68,22 +67,23 @@ export function useJobMenu(
   const copyJobId = async (item?: JobListItem | null) => {
     const target = resolveItem(item)
     if (!target) return
-    await copyToClipboard(target.id)
+    await copyToClipboard(target!.id)
   }
 
   const cancelJob = async (item?: JobListItem | null) => {
     const target = resolveItem(item)
     if (!target) return
-    if (target.state === 'running' || target.state === 'initialization') {
-      if (isCloud) {
-        await api.deleteItem('queue', target.id)
+    if (target!.state === 'running' || target!.state === 'initialization') {
+      if (false) {
+        await api.deleteItem('queue', target!.id)
       } else {
-        await api.interrupt(target.id)
+        if (!target) return
+        await api.interrupt(target!.id)
       }
-    } else if (target.state === 'pending') {
-      await api.deleteItem('queue', target.id)
+    } else if (target!.state === 'pending') {
+      await api.deleteItem('queue', target!.id)
     }
-    executionStore.clearInitializationByPromptId(target.id)
+    executionStore.clearInitializationByPromptId(target!.id)
     await queueStore.update()
   }
 
