@@ -148,9 +148,6 @@ export const useSidebarTabStore = defineStore('sidebarTab', () => {
     menuStore.registerCommands(
       ['View'],
       [
-        'Workspace.ToggleBottomPanel',
-        'Comfy.BrowseTemplates',
-        'Workspace.ToggleFocusMode',
         'Comfy.ToggleCanvasInfo',
         'Comfy.Canvas.ToggleMinimap',
         'Comfy.Canvas.ToggleLinkVisibility'
